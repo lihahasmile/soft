@@ -3,8 +3,8 @@ import os
 import threading
 from typing import Dict, Any, List, Union
 from openai import OpenAI
-from ges import GestureRecognizer
-from face import FaceRecognizer  # 假设你的 face 识别模块是 face.py 中的 FaceRecognizer 类
+from ges.ges import GestureRecognizer
+from face.face import FaceRecognizer  # 假设你的 face 识别模块是 face.py 中的 FaceRecognizer 类
 import cv2
 import time
 from whis.wav_text import VoiceRecognizer
@@ -63,10 +63,16 @@ class DrivingSystem:
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
         self.preserved_terms = ["加速", "减速", "左转", "右转", "米", "km/h", "障碍物"]
         self.voice_recognizer = VoiceRecognizer(on_transcription=self.handle_transcription)
-        self.gesture_recognizer = GestureRecognizer()
-        self.face_recognizer = FaceRecognizer()
+        
+        self.gesture_recognizer = GestureRecognizer(on_ges_change=self.handle_ges_change)
+        self.face_recognizer = FaceRecognizer(on_status_change=self.handle_status_change)
         self.cap = None
-        self.frame = None
+        # self.frame = None
+        self.latest_frame = None  # 主线程采集的最新帧
+        self.gesture_result = None
+        self.face_result = None
+        self.gesture_lock = threading.Lock()
+        self.face_lock = threading.Lock()
         self.frame_lock = threading.Lock()
         self.running = False
     def identify_input_mode(self, text: str) -> str:
@@ -224,100 +230,6 @@ class DrivingSystem:
         processed = self.preprocess_driving_data(input_text)
         api_response = self.call_deepseek_driving_api(processed)
         return self.generate_safe_instruction(api_response)
-    
-    def _camera_capture_loop(self):
-        """摄像头捕获线程"""
-        while self.running:
-            ret, frame = self.cap.read()
-            if not ret:
-                print("无法获取视频帧")
-                break
-                
-            # 更新共享帧
-            with self.frame_lock:
-                self.frame = frame.copy()
-            
-            time.sleep(0.01)  # 适当降低CPU使用率
-
-    def start_dual_recognition(self, display=False):
-        """启动双重识别系统"""
-        # 初始化单摄像头
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            print("无法打开摄像头")
-            return False
-            
-        # 设置分辨率
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        
-        # 启动识别器
-        self.gesture_recognizer.start(display)
-        self.face_recognizer.start(display)
-        
-        # 启动摄像头线程
-        self.running = True
-        threading.Thread(target=self._camera_capture_loop, daemon=True).start()
-        
-        # 启动处理线程
-        threading.Thread(target=self._process_gestures, daemon=True).start()
-        threading.Thread(target=self._process_face, daemon=True).start()
-        
-        return True
-
-    def _process_gestures(self):
-        """手势处理线程"""
-        while self.running:
-            if self.frame is not None:
-                with self.frame_lock:
-                    frame_copy = self.frame.copy()
-                
-                # 处理手势识别
-                gestures = self.gesture_recognizer.process(frame_copy)
-                if gestures:
-                    command = self.process_driving_command(f"[手势] {gestures[0]}")
-                    print("手势指令:", command)
-            
-            time.sleep(0.05)  # 控制处理频率
-
-    def _process_face(self):
-        """面部处理线程"""
-        while self.running:
-            if self.frame is not None:
-                with self.frame_lock:
-                    frame_copy = self.frame.copy()
-                
-                # 处理面部识别
-                self.face_recognizer.update(frame_copy)
-                status = self.face_recognizer.get_status()
-                if status:
-                    # 根据状态生成指令
-                    if status['headstate'] == 'shaking':
-                        command = self.process_driving_command("[头部姿态] 驾驶员摇头")
-                    elif status['headstate'] == 'nodding':
-                        command = self.process_driving_command("[头部姿态] 驾驶员点头")
-                    # ... 其他状态处理 ...
-                    elif status['headstate'].startswith('shaking_'):
-                        command = self.process_driving_command(f"[头部姿态] 驾驶员{status['headstate'].split('_')[1]}")
-                    elif status['headstate'].startswith('normal'):
-                        command = self.process_driving_command(f"[头部姿态] 驾驶员正常驾驶")
-                    elif status['eye_blinks'] >= 5:
-                        command = self.process_driving_command("[面部表情] 驾驶员频繁眨眼")
-                    elif status['mouth_opens'] >= 3:
-                        command = self.process_driving_command("[面部表情] 驾驶员张嘴")
-                    if command:
-                        print("面部指令:", command)
-            
-            time.sleep(0.05)  # 控制处理频率
-
-    def stop_dual_recognition(self):
-        """停止双重识别系统"""
-        self.running = False
-        if self.cap and self.cap.isOpened():
-            self.cap.release()
-        self.gesture_recognizer.stop()
-        self.face_recognizer.stop()
-        cv2.destroyAllWindows()
 
     def handle_transcription(self, text: str):
         """
@@ -330,6 +242,24 @@ class DrivingSystem:
         result = self.process_driving_command(f"[语音] {text}")
         print("指令生成结果:")
         print(json.dumps(result, ensure_ascii=False, indent=2))    
+
+    def handle_status_change(self, text: str):
+        """
+        回调函数
+        """
+        print("收到面部，正在处理...")
+        result = self.process_driving_command(f"[面部] {text}")
+        print("指令生成结果:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    def handle_ges_change(self, text: str):
+        """
+        回调函数
+        """
+        print("收到手势，正在处理...")
+        result = self.process_driving_command(f"[手势] {text}")
+        print("指令生成结果:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
 
 def test_driving_system():
     """
