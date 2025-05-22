@@ -36,7 +36,9 @@ class FaceRecognizer:
         self.statue = "未检测"  # 新增：存储当前状态
         self.on_status_change = on_status_change
         self.statue_lock = threading.Lock()  # 线程锁保护状态读写
-
+        self.yaw=0
+        self.head=0
+        self.state=0   # 0:注视前方 1:点头确认 2:摇头拒绝 3:低头看手机 4:向右说话 5:向左说话 6：注意力偏离
         # self.running = False
 
     def draw_chinese_text(self, frame, text, position, color=(255, 0, 0), font_size=30):
@@ -94,11 +96,18 @@ class FaceRecognizer:
             return None
         pitch_range = max(self.pitch_history) - min(self.pitch_history)
         yaw_range = max(self.yaw_history) - min(self.yaw_history)
-
-        if pitch_range > 5:
-            return "点头确认"
-        elif yaw_range > 20:
-            return "摇头拒绝"
+        if pitch_range > 10 and self.state!=1:
+            self.head+=1
+            if self.head>2 and self.state!=1:
+              self.head=0
+              self.state=1
+              return "点头确认"
+        elif yaw_range > 40:
+            self.yaw+=1
+            if self.yaw>3 and self.state!=2:
+              self.yaw=0
+              self.state=2
+              return "摇头拒绝"
         return None
 
     def detect_static_pose(self):
@@ -110,11 +119,17 @@ class FaceRecognizer:
         yaw_mean = np.mean(self.yaw_history)
         yaw_std = np.std(self.yaw_history)
 
-        if pitch_mean > 5 and pitch_std < 5:
+        if pitch_mean > 5 and pitch_std < 5 and self.state!=3:
+            self.state=3
+            self.head=0
             return "低头看手机"
-        elif yaw_mean > 20 and yaw_std < 5:
+        elif yaw_mean > 20 and yaw_std < 5 and self.state!=4:
+            self.yaw=0
+            self.state=4
             return "向右说话"
-        elif yaw_mean < -20 and yaw_std < 5:
+        elif yaw_mean < -20 and yaw_std < 5 and self.state!=5:
+            self.yaw=0
+            self.state=5
             return "向左说话"
         return None
 
@@ -160,7 +175,7 @@ class FaceRecognizer:
             self.yaw_history.append(yaw)
 
             # 注视状态判断
-            if abs(yaw) < 15 and abs(pitch) < 10:
+            if abs(yaw) < 20 and abs(pitch) < 15:
                 self.last_forward_time = now
 
             # 动态/静态行为检测
@@ -174,8 +189,10 @@ class FaceRecognizer:
                 state = motion
             elif pose:
                 state = pose
-            elif now - self.last_forward_time > 3:
+            elif now - self.last_forward_time > 3 and self.state!=6:
                 self.attention_warning = True
+                self.yaw=0
+                self.state=6
                 state = "注意力偏离超过3秒"
 
             # 线程安全地更新状态
