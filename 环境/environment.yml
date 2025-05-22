@@ -1,0 +1,14 @@
+name: whisper
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - keyboard
+      - gtts
+      - pydub
+      - openai-whisper
+      - opencc-python-reimplemented
+      - ffmpeg
+      - opencv-python
