@@ -1,0 +1,23 @@
+conda create --name whisper python=3.9（可在虚拟环境中进行）
+pip install keyboard
+// gtts
+pip install gtts
+pip install pydub
+
+// whisper
+python（3.8+）
+pip install openai-whisper
+pip install opencc-python-reimplemented
+
+安装 ffmpeg（下载并添加bin环境变量）:
+- 下载压缩包，地址https://www.gyan.dev/ffmpeg/builds/ (或文件夹下ffmpeg压缩包)
+- bin文件添加至环境变量
+- pip install ffmpeg
+- 验证：ffmpeg -version
+
+whisper模型：tiny(已存在)
+
+// ges+face
+pip install opencv
+
+可以直接使用我们的environment.yml进行conda虚拟环境配置，但是其中的ffmpeg仍然需要手动配置。
