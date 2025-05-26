@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>车载智能交互系统</title>
+  <link href="css/index.css" rel="stylesheet" />
+  <style>
+body {
+      margin: 0;
+      background: linear-gradient(to bottom right, #000428, #004e92);
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      font-size: 20px;
+    }
+
+    .search-box input {
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      padding: 60px;
+    }
+
+    .color-panel {
+      width: 50px;
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 10px;
+      margin-left: 10px;
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .center {
+      flex: 1;
+      display: flex;
+      gap: 75px;
+    }
+
+    .left-side {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        margin-left: 80px;
+    }
+
+.circle-container {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.circle-fill {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(
+    #00c8ff calc(var(--percent, 0) * 1%), 
+    rgba(255, 255, 255, 0.1) 0
+  );
+  z-index: 1;
+}
+
+.circle-inner {
+  width: 150px;
+  height: 150px;
+  background: #34464e;
+  border-radius: 50%;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.circle-text {
+  font-size: 25px;
+  text-align: center;
+  z-index: 3;
+  color: white;
+}
+
+
+footer {
+  display: flex;
+  justify-content: center;  /* 水平居中内容 */
+  align-items: center;      /* 垂直居中内容 */
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  padding: 10px 20px;
+  z-index: 999; /* 保证位于上层 */
+}
+
+
+
+.time {
+  font-size: 25px;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+  margin-right: 20px;
+  margin-top: -4px;
+}
+
+.bottom-box {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 10px;
+}
+
+.trapezoid {
+  background: rgba(255, 255, 255, 0.1);
+  clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+  padding: 12px 0;
+  width: 80%;
+  overflow-x: auto;
+  border-top: 2px solid rgba(255,255,255,0.3);
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+
+.bottom-menu {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.menu-item {
+  width: 90px;
+  height: 90px;
+  background: #a9c8d8;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.menu-item:hover {
+  background: #0099cc;
+  transform: scale(1.1);
+}
+
+.icon {
+  font-size: 40px;
+  margin-bottom: 2px;
+}
+
+.label {
+  font-size: 12px;
+}
+
+.output-box {
+  width: 300px;
+  height: 500px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+  margin-left: 100px; /* 左侧间隔 */
+  margin-right: 0;
+}
+
+.output-box h3 {
+  margin: 0 0 20px 0;
+  font-weight: normal;
+  font-size: 18px;
+  text-align: center;
+  margin-left: auto;
+}
+
+.output-content {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 16px;
+  line-height: 1.4;
+  white-space: pre-wrap; /* 保留换行 */
+}
+
+.warning-panel {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  margin-bottom: 100px;
+  padding: 20px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.warning-light {
+  padding: 20px 20px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.15);
+  font-size: 16px;
+  color: #fff;
+  text-align: center;
+}
+  </style>
+</head>
+<body>
+      <header>
+        <div class="weather">🌧️ 小雨 15℃</div>
+        <div class="color-panel">
+          <div class="color-swatch" style="background:#7c86da" onclick="changeBg('#7c86da', '#004e92')"></div>
+          <div class="color-swatch" style="background:#1c1c1c" onclick="changeBg('#1c1c1c', '#555')"></div>
+          <div class="color-swatch" style="background:#002b36" onclick="changeBg('#002b36', '#073642')"></div>
+        </div>
+        <div class="search-box"><input type="text" placeholder="搜索" /></div>
+      </header>
+
+      <div class="main">
+        <div class="left-side">
+          <div class="warning-panel">
+            <div class="warning-light blinking">🚨 安全带</div>
+            <div class="warning-light">🔋 电压</div>
+            <div class="warning-light blinking">💡 灯光</div>
+            <div class="warning-light blinking">安全气囊</div>
+            <div class="warning-light blinking">车门</div>
+          </div>
+
+          <div class="center">
+            <div class="circle-container" style="--percent: 75;">
+              <div class="circle-fill"></div>
+              <div class="circle-inner">
+                <div class="circle-text">⛽ 油量<br>75%</div>
+              </div>
+            </div>
+
+            <div class="circle-container" style="--percent: 68;">
+              <div class="circle-fill"></div>
+              <div class="circle-inner">
+                <div class="circle-text">🌡️ 水温<br>68%</div>
+              </div>
+            </div>
+
+            <div class="circle-container" style="--percent: 85;">
+              <div class="circle-fill"></div>
+              <div class="circle-inner">
+                <div class="circle-text">机油<br>85%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输出框 -->
+        <div class="output-box" id="outputBox">
+          <h3>输出信息</h3>
+          <div class="output-content" id="outputContent">
+            这里是输出显示区域，支持多行文本显示。
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="time" id="time"></div>
+        <div class="bottom-box">
+          <div class="trapezoid">
+            <div class="bottom-menu">
+              <div class="menu-item">
+                <div class="icon">🧭</div>
+                <div class="label">导航</div>
+              </div>
+              <div class="menu-item">
+                <div class="icon">🔊</div>
+                <div class="label">音量</div>
+              </div>
+              <div class="menu-item">
+                <div class="icon">🎵</div>
+                <div class="label">音乐</div>
+              </div>
+              <div class="menu-item">
+                <div class="icon">📶</div>
+                <div class="label">蓝牙</div>
+              </div>
+              <div class="menu-item">
+                <div class="icon">❄️</div>
+                <div class="label">空调</div>
+              </div>
+              <div class="menu-item">
+                <div class="icon">⚙️</div>
+                <div class="label">系统</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+  <!-- JS -->
+  <script src="assets/js/jquery-1.10.2.js"></script>
+  <script src="assets/js/bootstrap.min.js"></script>
+  <script src="assets/js/jquery.metisMenu.js"></script>
+  <script src="assets/js/dataTables/jquery.dataTables.js"></script>
+  <script src="assets/js/dataTables/dataTables.bootstrap.js"></script>
+  <script src="assets/js/custom.js"></script>
+
+  <script>
+    // 时间更新
+    function updateTime() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('time').innerText = timeString;
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // 背景主题切换
+    function changeBg(from, to) {
+        document.body.style.background = `linear-gradient(to bottom right, ${from}, ${to})`;
+    }
+
+    // 输出内容添加
+    const outputContent = document.getElementById("outputContent");
+    const eventSource = new EventSource("/stream");
+    eventSource.onmessage = function(event) {
+      console.log("接收到新指令：", event.data);
+      try {
+        const data = JSON.parse(event.data);
+        const timestamp = new Date().toLocaleTimeString();
+        const p = document.createElement('p');
+        p.textContent = `[${timestamp}]\n${JSON.stringify(data, null, 2)}\n\n`; 
+        outputContent.prepend(p)
+      } catch (e) {
+        console.error("解析数据失败:", e);
+      }
+    };
+    eventSource.onerror = function(err) {
+      console.error("SSE 错误：", err);
+      outputContent.innerText = "连接已断开，请检查后端状态或刷新页面。";
+    };
+  </script>
+</body>
+</html>

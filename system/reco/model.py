@@ -1,13 +1,15 @@
 import json
 import os
-import threading
+import threading 
 from typing import Dict, Any, List, Union
 from openai import OpenAI
-from ges.ges import GestureRecognizer
-from face.face import FaceRecognizer  # 假设你的 face 识别模块是 face.py 中的 FaceRecognizer 类
+from reco.ges.ges import GestureRecognizer
+from reco.face.face import FaceRecognizer  # 假设你的 face 识别模块是 face.py 中的 FaceRecognizer 类
 import cv2
 import time
-from whis.wav_text import VoiceRecognizer
+from reco.whis.wav_text import VoiceRecognizer
+from flask import Response
+
 # 驾驶规则配置
 DRIVING_RULES = {
     "速度控制": {
@@ -52,7 +54,7 @@ INPUT_MODES = {
 }
 
 class DrivingSystem:
-    def __init__(self):
+    def __init__(self, output_queue, output_condition):
         os.environ["DASHSCOPE_API_KEY"] = "sk-8e2f065fa5314b0b91deaf67ca6e969f"
         api_key = os.getenv("DASHSCOPE_API_KEY")
         if not api_key:
@@ -64,17 +66,11 @@ class DrivingSystem:
         self.preserved_terms = ["加速", "减速", "左转", "右转", "米", "km/h", "障碍物"]
         self.voice_recognizer = VoiceRecognizer(on_transcription=self.handle_transcription)
         
-        self.gesture_recognizer = GestureRecognizer()
-        self.face_recognizer = FaceRecognizer()
-        self.cap = None
-        # self.frame = None
-        self.latest_frame = None  # 主线程采集的最新帧
-        self.gesture_result = None
-        self.face_result = None
-        self.gesture_lock = threading.Lock()
-        self.face_lock = threading.Lock()
-        self.frame_lock = threading.Lock()
-        self.running = False
+        self.gesture_recognizer = GestureRecognizer(on_ges_change=self.handle_ges_change)
+        self.face_recognizer = FaceRecognizer(on_status_change=self.handle_status_change)
+        self.output_queue = output_queue
+        self.output_condition = output_condition
+
     def identify_input_mode(self, text: str) -> str:
         """识别输入文本的来源模式"""
         for mode, prefixes in INPUT_MODES.items():
@@ -231,93 +227,6 @@ class DrivingSystem:
         api_response = self.call_deepseek_driving_api(processed)
         return self.generate_safe_instruction(api_response)
 
-    # def start_dual_recognition(self):
-    #     """启动双重识别系统"""
-    #     # 初始化单摄像头
-    #     self.cap = cv2.VideoCapture(0)
-    #     if not self.cap.isOpened():
-    #         print("无法打开摄像头")
-    #         return False
-            
-    #     # 设置分辨率
-    #     self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    #     self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        
-    #     # 启动识别器
-    #     self.gesture_recognizer.start()
-    #     self.face_recognizer.start()
-        
-    #     self.running = True
-    #     frame_count = 0
-
-    #     # 处理
-    #     while self.running:
-    #         ret, frame = self.cap.read()
-    #         if not ret:
-    #             print("未能读取摄像头帧")
-    #             time.sleep(0.05)
-    #             continue
-            
-    #         # frame_count += 1
-    #         # if frame_count % 5 == 0:  # 每5帧处理一次（大约 5~7fps）
-    #             # === 处理手势识别 ===
-    #         frame = self._process_gesture(frame)
-    #             # === 处理面部识别 ===
-    #         frame = self._process_face(frame)
-            
-    #         # === 显示图像 ===
-    #         if frame is not None:
-    #             cv2.imshow("Driver Behavior Recognition", frame)
-    #             if cv2.waitKey(1) & 0xFF == ord('q'):
-    #                 self.running = False
-    #                 break
-    #         else:
-    #             print("[WARNING] 当前帧处理后为空，无法显示")
-    #         time.sleep(0.05)  # 控制处理频率
-
-    #     self.stop_dual_recognition()
-    #     return True
-
-    # def _process_gesture(self, frame):
-    #     """处理手势识别流程"""
-    #     try:
-    #         frame = self.gesture_recognizer.process(frame)
-    #         gestures = self.gesture_recognizer.get_gesture()
-    #         if gestures:
-    #             command = self.process_driving_command(f"[手势] {gestures[0]}")
-    #             print("手势指令:", command)
-    #             # cv2.putText(frame, f"手势: {gestures[0]}", (30, 100),
-    #             #             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-    #     except Exception as e:
-    #         print("[ERROR] 手势处理异常:", e)
-    #     return frame
-
-
-    # def _process_face(self, frame):
-    #     """处理面部识别流程"""
-    #     try:
-    #         frame = self.face_recognizer.process_frame(frame)
-    #         state = self.face_recognizer.get_statue()
-    #         if state:
-    #             command = self.process_driving_command(f"[面部] {state}")
-    #             print("面部指令:", command)
-    #             # cv2.putText(frame, f"面部状态: {state}", (30, 50),
-    #             #             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
-    #     except Exception as e:
-    #         print("[ERROR] 面部处理异常:", e)
-    #     return frame
-
-    # def stop_dual_recognition(self):
-    #     """停止双重识别系统"""
-    #     self.running = False
-    #     if self.cap and self.cap.isOpened():
-    #         self.cap.release()
-    #         print("摄像头释放完成")
-    #     self.gesture_recognizer.stop()
-    #     self.face_recognizer.stop()
-    #     cv2.destroyAllWindows()
-    #     print("识别系统已停止")
-
     def handle_transcription(self, text: str):
         """
         回调函数，处理转写的语音文本。
@@ -328,60 +237,53 @@ class DrivingSystem:
         print("收到语音文本，正在处理...")
         result = self.process_driving_command(f"[语音] {text}")
         print("指令生成结果:")
-        print(json.dumps(result, ensure_ascii=False, indent=2))    
+        re = json.dumps(result, ensure_ascii=False, indent=2)
+        print(re)
+        with self.output_condition:
+            self.output_queue.append(result)
+            print("📤 加入\n")
+            self.output_condition.notify_all()  
 
-def test_driving_system():
-    """
-    测试不同数据源的驾驶指令处理
-    
-    输入规则说明:
-    1. 焦点识别模块: [手势], [视觉焦点]
-    2. 语音识别模块: [语音], [协议], [规则]
-    3. 多模态反馈模块: [多传感器], [系统状态], [雷达], [相机], [GPS]
-    """
-    system = DrivingSystem()
+    def handle_status_change(self, text: str):
+        """
+        回调函数
+        """
+        print("收到面部，正在处理...")
+        result = self.process_driving_command(f"[面部] {text}")
+        print("指令生成结果:")
+        re = json.dumps(result, ensure_ascii=False, indent=2)
+        print(re)
+        with self.output_condition:
+            self.output_queue.append(result)
+            print("📤 加入\n")
+            self.output_condition.notify_all()  
 
-    # 测试用例
-    test_cases = [
-        # 焦点识别模块
-        "[手势] 五指张开 → 激活系统",
-        "[手势] 握拳 → 紧急暂停",
-        "[视觉焦点] 驾驶员视线停留在左侧后视镜",
-        
-        # 语音识别模块
-        "[语音] \"请降低车速到60公里\"",
-        "[语音] \"下一个路口右转\"",
-        "[协议] 检测到疲劳驾驶：触发警报协议3.2",
-        "[规则] 雨天限速规则激活",
-        
-        # 多模态反馈模块
-        "[多传感器] 雷达检测前方10米障碍物 + 摄像头识别红灯",
-        "[系统状态] 电池电量剩余30% + 胎压异常",
-        "[雷达] 前方障碍物距离5米,相对速度20km/h",
-        "[相机] 前方红灯,需要减速停车",
-        "[GPS] 前方500米有急转弯"
-    ]
+    def handle_ges_change(self, text: str):
+        """
+        回调函数
+        """
+        print("收到手势，正在处理...")
+        result = self.process_driving_command(f"[手势] {text}")
+        print("指令生成结果:")
+        re = json.dumps(result, ensure_ascii=False, indent=2)
+        print(re)
+        with self.output_condition:
+            self.output_queue.append(result)
+            print("📤 加入\n")
+            self.output_condition.notify_all()  
 
-    print("=== 开始驾驶系统测试 ===")
-    for test_input in test_cases:
-        print(f"\n测试输入: {test_input}")
-        print(f"输入模式: {system.identify_input_mode(test_input)}")
-        result = system.process_driving_command(test_input)
-        print("处理结果:", json.dumps(result, ensure_ascii=False, indent=2))
-    print("=== 测试完成 ===")
-
-    # 测试复合输入
-    print("\n=== 测试复合输入 ===")
-    complex_input = [
-        "[手势] 食指指向导航屏幕",
-        "[语音] '避开当前拥堵路线'",
-        "[协议] 夜间行驶自动开启远光灯",
-        "[多传感器] 超声波:左侧0.5m障碍物"
-    ]
-
-    for input_text in complex_input:
-        print(f"\n测试输入: {input_text}")
-        print(f"输入模式: {system.identify_input_mode(input_text)}")
-        result = system.process_driving_command(input_text)
-        print("处理结果:", json.dumps(result, ensure_ascii=False, indent=2))
-    print("=== 复合输入测试完成 ===")
+    def get_stream(self):
+        def event_stream():
+            while True:
+                try:
+                    with self.output_condition:
+                        while not self.output_queue:
+                            print("🛑 等待新数据\n")
+                            self.output_condition.wait()
+                        result = self.output_queue.popleft()
+                        print("✅ 发送新数据:\n", result)
+                        yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
+                except Exception as e:
+                    print("🚨 /stream 内部异常：", e)
+                    break
+        return Response(event_stream(), mimetype='text/event-stream')

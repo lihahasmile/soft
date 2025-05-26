@@ -11,9 +11,9 @@ import os
 
 class VoiceRecognizer:
     def __init__(self,on_transcription=None):
-        self.model = whisper.load_model("./whis/tiny.pt")
+        self.model = whisper.load_model("./reco/whis/tiny.pt")
         self.cc = OpenCC("t2s")
-        self.output_dir = "./whis/test"
+        self.output_dir = "./reco/whis/test"
         os.makedirs(self.output_dir, exist_ok=True)
         self.SAMPLE_RATE = 16000
         self.CHANNELS = 1
