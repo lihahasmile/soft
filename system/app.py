@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response, request, jsonify, session, redirect
 import time
 import threading
 import concurrent.futures
@@ -10,8 +10,11 @@ import traceback
 import requests
 import os
 from collections import deque
+import sqlite3
 
 app = Flask(__name__)
+# python -c "import secrets; print(secrets.token_hex(32))"
+app.secret_key = '15d3e837bbe935321c7ee7cd00f6fd47058e5b74d5920ee2420cb7d937e5fc57'
 
 # === 全局共享资源 ===
 output_queue = deque()
@@ -23,6 +26,7 @@ system = DrivingSystem(output_queue, output_condition)
 latest_frame = None
 frame_lock = threading.Lock()
 stop_event = threading.Event()
+threads_started = threading.Event()
 
 def capture_frame():
     try:
@@ -115,10 +119,6 @@ def start_threads():
     for thread in threads:
         thread.join()
 
-# 主页路由
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 # 实时输出路由
 @app.route('/stream')
@@ -126,10 +126,79 @@ def stream():
     print("stream 路由已被访问")
     return system.get_stream()
 
+# 启动界面
+@app.route('/')
+def home():
+    return render_template('login.html')
+
+# 登陆注册
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        role = data.get('role')
+
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username=? AND password=? AND role=?", (username, password, role))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            session['username'] = username
+            session['role'] = role
+            return jsonify({"success": True, "redirect_url": "/index"})
+        else:
+            return jsonify({"success": False, "message": "用户名、密码或身份错误"})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        try:
+            username = request.form['username']
+            password = request.form['password']
+            role = request.form['role']
+
+            conn = sqlite3.connect('database.db')
+            cursor = conn.cursor()
+
+            # 检查用户名是否存在
+            cursor.execute("SELECT * FROM users WHERE username=?", (username,))
+            if cursor.fetchone():
+                conn.close()
+                return render_template('register.html', error='用户名已存在，请更换用户名')
+
+            # 插入新用户
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                           (username, password, role))
+            conn.commit()
+            conn.close()
+            return redirect('/')
+        except Exception as e:
+            return f"注册失败：{str(e)}"
+    else:
+        return render_template('register.html')
+
+# 主页路由
+@app.route('/index')
+def index():
+    # return render_template('index.html')
+    if 'username' not in session:
+        return redirect('/')
+    if not threads_started.is_set():
+        threads_started.set()  # 设置标志，避免重复启动
+        threading.Thread(target=start_threads).start()
+    return render_template('index.html', username=session['username'], role=session['role'])
+
 if __name__ == '__main__':
     try:
-        start_thread = threading.Thread(target=start_threads)
-        start_thread.start()
+        # start_thread = threading.Thread(target=start_threads)
+        # start_thread.start()
         app.run(debug=True, threaded=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
         print("检测到 Ctrl+C，退出中...")

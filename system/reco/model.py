@@ -38,6 +38,12 @@ DRIVING_RULES = {
         "params": {"command": "str"},
         "safety_check": lambda p: True  # 语音指令安全检查在解析阶段处理
     },
+    "用户姿态": {
+        "code": "USER_POSTURE",
+        "params": {"pos_type": "str", "action": "str"},
+        "safety_check": lambda p: p.get("pos_type") 
+        in ["点头确认", "摇头拒绝", "低头看手机", "向右说话", "向左说话", "注意力偏离超过3秒", "注视前方"]
+    },
     "协议指令": {
         "code": "PROTOCOL_CMD",
         "params": {"protocol_id": "str", "action": "str"},
@@ -48,8 +54,9 @@ DRIVING_RULES = {
 
 # 输入模式定义
 INPUT_MODES = {
-    "焦点识别": ["[手势]", "[视觉焦点]"],
+    "手势识别": ["[手势]", "[视觉焦点]"],
     "语音识别": ["[语音]", "[协议]", "[规则]"],
+    "面部识别": ["[面部]", "[面部姿态]"],
     "多模态反馈": ["[多传感器]", "[系统状态]", "[雷达]", "[相机]", "[GPS]"]
 }
 
@@ -87,7 +94,7 @@ class DrivingSystem:
         cleaned_text = "".join([c for c in text if c not in ["[无效信号]"]])
         
         # 根据输入模式处理
-        if input_mode == "焦点识别":
+        if input_mode == "手势识别":
             if "[手势]" in text:
                 return f"[手势输入] {cleaned_text}"
             return f"[视觉焦点数据] {cleaned_text}"
@@ -96,6 +103,11 @@ class DrivingSystem:
             if "[语音]" in text:
                 return f"[语音指令] {cleaned_text}"
             return f"[协议触发] {cleaned_text}"
+        
+        elif input_mode == "面部识别":
+            if "[面部]" in text:
+                return f"[面部指令] {cleaned_text}"
+            return f"[用户姿态数据] {cleaned_text}"
         
         elif input_mode == "多模态反馈":
             for sensor in ["多传感器", "系统状态", "雷达", "相机", "GPS"]:
@@ -118,6 +130,10 @@ class DrivingSystem:
         # 处理语音命令参数
         if "命令内容" in params:
             return {"command": params["命令内容"]}
+        
+        # 处理手势参数
+        if "用户姿态" in params:
+            return {"pos_type": params["用户姿态"], "action": params.get("动作", "默认动作")}
             
         return params
 
@@ -139,6 +155,7 @@ class DrivingSystem:
                 "右转": "转向操作",
                 "手势": "手势控制",
                 "语音命令": "语音指令",
+                "面部": "用户姿态",
                 "协议": "协议指令"
             }
             
@@ -158,10 +175,12 @@ class DrivingSystem:
         system_prompt = "你是一个智能驾驶助手，根据提供的情况选择合适的指令，请严格按JSON格式返回指令。其中intent只能从 速度控制、转向操作、紧急制动、手势控制、语音指令、协议指令、用户姿态 中选取"
         
         # 根据不同输入模式调整系统提示
-        if input_mode == "焦点识别":
-            system_prompt += "特别注意处理手势和视觉焦点、用户头部姿态相关的输入。"
+        if input_mode == "手势识别":
+            system_prompt += "特别注意处理手势相关的输入。"
         elif input_mode == "语音识别":
             system_prompt += "特别注意处理语音指令和系统协议触发。"
+        elif input_mode == "面部识别":
+            system_prompt += "特别注意处理视觉焦点、用户姿态相关的输入。"
         
         try:
             completion = self.client.chat.completions.create(
@@ -175,7 +194,7 @@ class DrivingSystem:
                         "role": "user",
                         "content": f"""严格按JSON格式解析驾驶指令：
                         输入：{text}
-                        要求字段：intent(操作类型), params(根据输入类型可包含速度值/转向角/手势类型/命令内容等)"""
+                        要求字段：intent(操作类型), params(根据输入类型可包含速度值/转向角/手势类型/用户姿态/命令内容等)"""
                     }
                 ]
             )
@@ -201,12 +220,67 @@ class DrivingSystem:
             }
         
         # 手势特殊处理
-        if response["intent"] == "手势控制" and response["params"].get("gesture_type") == "握拳":
-            return {
-                "强制指令": "EMG_BRAKE",
-                "参数": {"force_level": 2},
-                "系统日志": "握拳手势触发紧急停车"
-            }
+        if response["intent"] == "手势控制":
+            print("手势: \n")
+            posture = response["params"].get("gesture_type")
+            if posture == "握拳":
+                print("握拳: \n")
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "握拳手势触发紧急停车"
+                }
+            
+            if posture == "拇指向上":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "竖起大拇指表示确认"
+                }
+            
+            if posture == "挥手":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "摇手表示拒绝"
+                }
+        
+        if response["intent"] == "用户姿态":
+            posture = response["params"].get("pos_type") 
+            if posture == "点头确认":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "检测到用户点头，表示确认"
+                }
+            
+            if posture == "摇头拒绝":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "检测到用户摇头，已拒绝相关操作"
+                }
+            
+            if posture == "低头看手机":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "检测到用户低头玩手机，驾驶注意力可能不集中"
+                }
+        
+            if posture == "注意力偏离超过3秒":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "⚠ 警告：用户注意力偏离"
+                }
+            
+            if posture == "向右说话" or posture == "向左说话":
+                return {
+                    "强制指令": "EMG_BRAKE",
+                    "参数": {"force_level": 2},
+                    "系统日志": "检测到用户转头说话，注意观察周围环境"
+                }
         
         # 这一句是为了处理没有意图的情况
         rule = DRIVING_RULES.get(response["intent"])
