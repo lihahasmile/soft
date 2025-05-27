@@ -356,7 +356,15 @@ class DrivingSystem:
                             self.output_condition.wait()
                         result = self.output_queue.popleft()
                         print("✅ 发送新数据:\n", result)
-                        yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
+                        # yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
+                        # 传送系统日志字段
+                        if isinstance(result, dict) and "系统日志" in result:
+                            log_message = result["系统日志"]
+                            print("📤 发送系统日志:", log_message)
+                            yield f"data: {json.dumps(log_message, ensure_ascii=False)}\n\n"
+                        else:
+                            print("⏩ 跳过无系统日志的数据")
+                            continue
                 except Exception as e:
                     print("🚨 /stream 内部异常：", e)
                     break

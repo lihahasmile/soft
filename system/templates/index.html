@@ -286,9 +286,7 @@ footer {
         <!-- 输出框 -->
         <div class="output-box" id="outputBox">
           <h3>输出信息</h3>
-          <div class="output-content" id="outputContent">
-            这里是输出显示区域，支持多行文本显示。
-          </div>
+          <div class="output-content" id="outputContent"></div>
         </div>
       </div>
 
@@ -353,12 +351,13 @@ footer {
     const outputContent = document.getElementById("outputContent");
     const eventSource = new EventSource("/stream");
     eventSource.onmessage = function(event) {
-      console.log("接收到新指令：", event.data);
+      console.log("接收到系统日志：", event.data);
       try {
-        const data = JSON.parse(event.data);
+        // const data = JSON.parse(event.data);
         const timestamp = new Date().toLocaleTimeString();
         const p = document.createElement('p');
-        p.textContent = `[${timestamp}]\n${JSON.stringify(data, null, 2)}\n\n`; 
+        // p.textContent = `[${timestamp}]\n${JSON.stringify(data, null, 2)}\n\n`; 
+        p.textContent = `[${timestamp}] ${event.data}`;
         outputContent.prepend(p)
       } catch (e) {
         console.error("解析数据失败:", e);
