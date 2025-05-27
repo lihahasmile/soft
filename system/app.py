@@ -20,7 +20,8 @@ app.secret_key = '15d3e837bbe935321c7ee7cd00f6fd47058e5b74d5920ee2420cb7d937e5fc
 output_queue = deque()
 output_condition = threading.Condition()
 
-system = DrivingSystem(output_queue, output_condition)
+# system = DrivingSystem(output_queue, output_condition)
+system = None
 
 # 共享帧和锁
 latest_frame = None
@@ -56,6 +57,7 @@ def capture_frame():
         print("摄像头释放")
     except Exception as e:
         print("[异常] capture_frame:", e)
+        traceback.print_exc()
 
 
 def handle_face_recognition():
@@ -70,6 +72,7 @@ def handle_face_recognition():
             time.sleep(0.05)
     except Exception as e:
         print("[异常] handle_face_recognition:", e)
+        traceback.print_exc()
 
 
 def handle_gesture_recognition():
@@ -84,6 +87,7 @@ def handle_gesture_recognition():
             time.sleep(0.05)
     except Exception as e:
         print("[异常] handle_gesture_recognition:", e)
+        traceback.print_exc()
 
 def handle_voice_recognition():
     try:
@@ -93,6 +97,7 @@ def handle_voice_recognition():
             time.sleep(0.1)
     except Exception as e:
         print("[异常] handle_voice_recognition:", e)
+        traceback.print_exc()
 
 def wait_for_q():
     try:
@@ -104,6 +109,7 @@ def wait_for_q():
         os._exit(0)
     except Exception as e:
         print("[异常] wait_for_q:", e)
+        traceback.print_exc()
 
 # 启动所有线程
 def start_threads():
@@ -116,8 +122,10 @@ def start_threads():
     ]
     for thread in threads:
         thread.start()
+        print(f"[主线程] 启动线程")
     for thread in threads:
         thread.join()
+        print(f"[主线程] 线程已结束：{thread.name}")
 
 
 # 实时输出路由
@@ -188,10 +196,12 @@ def register():
 @app.route('/index')
 def index():
     # return render_template('index.html')
+    global system
     if 'username' not in session:
         return redirect('/')
     if not threads_started.is_set():
         threads_started.set()  # 设置标志，避免重复启动
+        system = DrivingSystem(output_queue, output_condition,username=session['username'], role=session['role'])
         threading.Thread(target=start_threads).start()
     return render_template('index.html', username=session['username'], role=session['role'])
 
@@ -199,6 +209,7 @@ if __name__ == '__main__':
     try:
         # start_thread = threading.Thread(target=start_threads)
         # start_thread.start()
+        print("[主线程] Flask 启动中...")
         app.run(debug=True, threaded=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
         print("检测到 Ctrl+C，退出中...")

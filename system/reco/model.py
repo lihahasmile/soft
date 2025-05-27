@@ -8,7 +8,8 @@ from reco.face.face import FaceRecognizer  # 假设你的 face 识别模块是 f
 import cv2
 import time
 from reco.whis.wav_text import VoiceRecognizer
-from flask import Response
+from flask import Response, session
+from logs.log import insert_log
 
 # 驾驶规则配置
 DRIVING_RULES = {
@@ -61,7 +62,7 @@ INPUT_MODES = {
 }
 
 class DrivingSystem:
-    def __init__(self, output_queue, output_condition):
+    def __init__(self, output_queue, output_condition, username='system', role='system'):
         os.environ["DASHSCOPE_API_KEY"] = "sk-8e2f065fa5314b0b91deaf67ca6e969f"
         api_key = os.getenv("DASHSCOPE_API_KEY")
         if not api_key:
@@ -77,6 +78,8 @@ class DrivingSystem:
         self.face_recognizer = FaceRecognizer(on_status_change=self.handle_status_change)
         self.output_queue = output_queue
         self.output_condition = output_condition
+        self.username = username
+        self.role = role
 
     def identify_input_mode(self, text: str) -> str:
         """识别输入文本的来源模式"""
@@ -313,6 +316,10 @@ class DrivingSystem:
         print("指令生成结果:")
         re = json.dumps(result, ensure_ascii=False, indent=2)
         print(re)
+        if isinstance(result, dict) and "系统日志" in result:
+            log_message = result["系统日志"]
+            print("存储 logs:", log_message)
+            insert_log(self.username, self.role, log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
@@ -327,6 +334,10 @@ class DrivingSystem:
         print("指令生成结果:")
         re = json.dumps(result, ensure_ascii=False, indent=2)
         print(re)
+        if isinstance(result, dict) and "系统日志" in result:
+            log_message = result["系统日志"]
+            print("存储 logs:", log_message)
+            insert_log(self.username, self.role, log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
@@ -341,6 +352,10 @@ class DrivingSystem:
         print("指令生成结果:")
         re = json.dumps(result, ensure_ascii=False, indent=2)
         print(re)
+        if isinstance(result, dict) and "系统日志" in result:
+            log_message = result["系统日志"]
+            print("存储 logs:", log_message)
+            insert_log(self.username, self.role, log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
