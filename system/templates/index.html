@@ -1,354 +1,550 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>车载智能交互系统</title>
-  <link href="css/index.css" rel="stylesheet" />
-  <style>
-body {
-      margin: 0;
-      background: linear-gradient(to bottom right, #000428, #004e92);
-      color: #fff;
-      font-family: 'Arial', sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 24px;
-      font-size: 20px;
-    }
-
-    .search-box input {
-      padding: 8px;
-      border-radius: 8px;
-      border: none;
-    }
-
-    .main {
-      flex: 1;
-      display: flex;
-      padding: 60px;
-    }
-
-    .color-panel {
-      width: 50px;
-      display: flex;
-      flex-direction: row-reverse;
-      gap: 10px;
-      margin-left: 10px;
-    }
-
-    .color-swatch {
-      width: 20px;
-      height: 20px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .center {
-      flex: 1;
-      display: flex;
-      gap: 75px;
-    }
-
-    .left-side {
-        display: flex;
-        flex-direction: column;
-        gap: 30px;
-        margin-left: 80px;
-    }
-
-.circle-container {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-  overflow: hidden;
-}
-
-.circle-fill {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(
-    #00c8ff calc(var(--percent, 0) * 1%), 
-    rgba(255, 255, 255, 0.1) 0
-  );
-  z-index: 1;
-}
-
-.circle-inner {
-  width: 150px;
-  height: 150px;
-  background: #34464e;
-  border-radius: 50%;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.circle-text {
-  font-size: 25px;
-  text-align: center;
-  z-index: 3;
-  color: white;
-}
-
-
-footer {
-  display: flex;
-  justify-content: center;  /* 水平居中内容 */
-  align-items: center;      /* 垂直居中内容 */
-  padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  padding: 10px 20px;
-  z-index: 999; /* 保证位于上层 */
-}
-
-
-
-.time {
-  font-size: 25px;
-  display: inline-block;
-  vertical-align: middle;
-  line-height: 1;
-  margin-right: 20px;
-  margin-top: -4px;
-}
-
-.bottom-box {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  padding-bottom: 10px;
-}
-
-.trapezoid {
-  background: rgba(255, 255, 255, 0.1);
-  clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
-  padding: 12px 0;
-  width: 80%;
-  overflow-x: auto;
-  border-top: 2px solid rgba(255,255,255,0.3);
-  border-bottom: 2px solid rgba(255,255,255,0.3);
-}
-
-.bottom-menu {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  padding: 0 20px;
-}
-
-.menu-item {
-  width: 90px;
-  height: 90px;
-  background: #a9c8d8;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: #000;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.2s;
-}
-
-.menu-item:hover {
-  background: #0099cc;
-  transform: scale(1.1);
-}
-
-.icon {
-  font-size: 40px;
-  margin-bottom: 2px;
-}
-
-.label {
-  font-size: 12px;
-}
-
-.output-box {
-  width: 300px;
-  height: 500px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-  overflow: hidden;
-  margin-left: 100px; /* 左侧间隔 */
-  margin-right: 0;
-}
-
-.output-box h3 {
-  margin: 0 0 20px 0;
-  font-weight: normal;
-  font-size: 18px;
-  text-align: center;
-  margin-left: auto;
-}
-
-.output-content {
-  flex: 1;
-  overflow-y: auto;
-  font-size: 16px;
-  line-height: 1.4;
-  white-space: pre-wrap; /* 保留换行 */
-}
-
-.warning-panel {
-  display: flex;
-  justify-content: center;
-  gap: 60px;
-  margin-bottom: 100px;
-  padding: 20px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(255,255,255,0.2);
-}
-
-.warning-light {
-  padding: 20px 20px;
-  border-radius: 20px;
-  background-color: rgba(255, 255, 255, 0.15);
-  font-size: 16px;
-  color: #fff;
-  text-align: center;
-}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能设备控制面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-      <header>
-        <div class="weather">🌧️ 小雨 15℃</div>
-        <div class="color-panel">
-          <div class="color-swatch" style="background:#7c86da" onclick="changeBg('#7c86da', '#004e92')"></div>
-          <div class="color-swatch" style="background:#1c1c1c" onclick="changeBg('#1c1c1c', '#555')"></div>
-          <div class="color-swatch" style="background:#002b36" onclick="changeBg('#002b36', '#073642')"></div>
-        </div>
-        <div class="search-box"><input type="text" placeholder="搜索" /></div>
-      </header>
+  <div class="header">
+    <div class="time" id="time-display">--:--:--</div>
+    <div class="status-icons">
+      <i class="fas fa-wifi"></i>
+      <i class="fas fa-bluetooth"></i>
+      <i class="fas fa-signal"></i>
+      <i class="fas fa-car"></i>
+    </div>
+  </div>
 
-      <div class="main">
-        <div class="left-side">
-          <div class="warning-panel">
-            <div class="warning-light blinking">🚨 安全带</div>
-            <div class="warning-light">🔋 电压</div>
-            <div class="warning-light blinking">💡 灯光</div>
-            <div class="warning-light blinking">安全气囊</div>
-            <div class="warning-light blinking">车门</div>
-          </div>
-
-          <div class="center">
-            <div class="circle-container" style="--percent: 75;">
-              <div class="circle-fill"></div>
-              <div class="circle-inner">
-                <div class="circle-text">⛽ 油量<br>75%</div>
-              </div>
+    <div class="main">
+        <div class="left-panel">
+            <div class="warning-lights">
+                <i class="fas fa-triangle-exclamation warning-light flashing"></i>
+                <i class="fas fa-car-battery warning-light"></i>
+                <i class="fas fa-thermometer-half warning-light"></i>
+                <i class="fa fa-bell"></i>
             </div>
-
-            <div class="circle-container" style="--percent: 68;">
-              <div class="circle-fill"></div>
-              <div class="circle-inner">
-                <div class="circle-text">🌡️ 水温<br>68%</div>
-              </div>
-            </div>
-
-            <div class="circle-container" style="--percent: 85;">
-              <div class="circle-fill"></div>
-              <div class="circle-inner">
-                <div class="circle-text">机油<br>85%</div>
-              </div>
+          <div id="gauge"></div>
+          <div class="panel">
+            <p>> 系统启动 . . .</p>
+            <p>> hello，我是小e</p>
+            <div id="live-output" style="margin-top: 20px;">
+              <h2>实时识别输出</h2>
+              <div id="output-box" style="background:#001f33; padding:10px; border-radius:8px; max-height:200px; overflow-y:auto; color:#ffffff; font-family:monospace;font-size: 16px;"></div>
             </div>
           </div>
         </div>
 
-        <!-- 输出框 -->
-        <div class="output-box" id="outputBox">
-          <h3>输出信息</h3>
-          <div class="output-content" id="outputContent"></div>
-        </div>
-      </div>
-
-      <footer>
-        <div class="time" id="time"></div>
-        <div class="bottom-box">
-          <div class="trapezoid">
-            <div class="bottom-menu">
-              <div class="menu-item">
-                <div class="icon">🧭</div>
-                <div class="label">导航</div>
-              </div>
-              <div class="menu-item">
-                <div class="icon">🔊</div>
-                <div class="label">音量</div>
-              </div>
-              <div class="menu-item">
-                <div class="icon">🎵</div>
-                <div class="label">音乐</div>
-              </div>
-              <div class="menu-item">
-                <div class="icon">📶</div>
-                <div class="label">蓝牙</div>
-              </div>
-              <div class="menu-item">
-                <div class="icon">❄️</div>
-                <div class="label">空调</div>
-              </div>
-              <div class="menu-item">
-                <div class="icon">⚙️</div>
-                <div class="label">系统</div>
-              </div>
+        <div class="right-panel">
+            <div class="card-container">
+                <button class="arrow prev-arrow" onclick="prevSlide()">&#10094;</button>
+                <div class="card-slider" id="card-slider">
+                    <div class="card">
+                        <i class="fas fa-home"></i>
+                        <h2>首页 <span class="status-indicator"></span></h2>
+                        <p>显示设备概览和常用快捷操作，返回主控制界面</p>
+                        <button class="btn" onclick="showNotification('已返回主界面')">返回首页</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-location-arrow"></i>
+                        <h2>导航</h2>
+                        <p>提供位置服务和路线规划，支持室内外导航</p>
+                        <button class="btn" onclick="showNotification('导航功能已启动')">开始导航</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-music"></i>
+                        <h2>媒体 <span class="status-indicator status-off"></span></h2>
+                        <p>多媒体播放控制，支持音乐、视频和图片浏览</p>
+                        <div class="slider-container">
+                          <input type="range" min="0" max="100" value="70" class="slider" id="volume-slider">
+                        </div>
+                        <button class="btn" onclick="toggleMedia()">播放/暂停</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-satellite-dish"></i>
+                        <h2>通信</h2>
+                        <p>管理电话、消息和视频通话等通信功能</p>
+                        <button class="btn" onclick="showNotification('正在连接通信服务...')">连接设备</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-cogs"></i>
+                        <h2>系统设置</h2>
+                        <p>调整设备参数、网络设置和个性化选项</p>
+                        <button class="btn" onclick="showNotification('打开系统设置面板')">打开设置</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-camera"></i>
+                        <h2>摄像头</h2>
+                        <p>控制摄像头设备，拍照、录像和监控</p>
+                        <button class="btn" onclick="toggleCamera()">开启/关闭</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-robot"></i>
+                        <h2>AI助手</h2>
+                        <p>DeepSeek-R1智能助手，提供帮助和智能服务</p>
+                        <button class="btn" onclick="showNotification('你好！我是DeepSeek-R1，很高兴为您服务')">对话</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-music"></i>
+                        <h2>音乐</h2>
+                        <p>音乐播放器，支持在线流媒体和本地播放</p>
+                        <div class="slider-container">
+                          <input type="range" min="0" max="100" value="40" class="slider" id="music-slider">
+                        </div>
+                        <button class="btn" onclick="toggleMusic()">播放音乐</button>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-snowflake"></i>
+                        <h2>空调控制 <span class="status-indicator"></span></h2>
+                        <p>调节温度、风速和运行模式</p>
+                        <div class="slider-container">
+                          <input type="range" min="16" max="30" value="24" class="slider" id="temp-slider">
+                        </div>
+                        <button class="btn" onclick="toggleAC()">开关空调</button>
+                    </div>
+                </div>
+                <button class="arrow next-arrow" onclick="nextSlide()">&#10095;</button>
             </div>
-          </div>
         </div>
-      </footer>
+    </div>
 
-  <!-- JS -->
-  <script src="assets/js/jquery-1.10.2.js"></script>
-  <script src="assets/js/bootstrap.min.js"></script>
-  <script src="assets/js/jquery.metisMenu.js"></script>
-  <script src="assets/js/dataTables/jquery.dataTables.js"></script>
-  <script src="assets/js/dataTables/dataTables.bootstrap.js"></script>
-  <script src="assets/js/custom.js"></script>
+    <div class="footer">
+            <div class="menu-item" onclick="showNotification('返回主界面')">
+                <i class="fas fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="menu-item" onclick="showNotification('启动导航服务')">
+                <i class="fas fa-location-arrow"></i>
+                <span>导航</span>
+            </div>
+            <div class="menu-item" onclick="toggleMedia()">
+                <i class="fas fa-music"></i>
+                <span>媒体</span>
+            </div>
+            <div class="menu-item" onclick="showNotification('打开通信面板')">
+                <i class="fas fa-satellite-dish"></i>
+                <span>通信</span>
+            </div>
+            <div class="menu-item" onclick="showNotification('打开系统设置')">
+                <i class="fas fa-cogs"></i>
+                <span>设置</span>
+            </div>
+            <div class="menu-item" onclick="toggleCamera()">
+                <i class="fas fa-camera"></i>
+                <span>摄像头</span>
+            </div>
+            <div class="menu-item" onclick="showNotification('启动AI助手')">
+                <i class="fas fa-robot"></i>
+                <span>AI助手</span>
+            </div>
+            <div class="menu-item" onclick="toggleMusic()">
+                <i class="fas fa-music"></i>
+                <span>音乐</span>
+            </div>
+            <div class="menu-item" onclick="toggleAC()">
+                <i class="fas fa-snowflake"></i>
+                <span>空调</span>
+            </div>
+        </div>
+    </div>
 
-  <script>
-    // 时间更新
+    <div class="notification" id="notification">
+        操作成功！
+    </div>
+
+    <script>
+        let currentIndex = 0;
+        const slides = document.querySelectorAll('.card');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            const slider = document.getElementById('card-slider');
+            slider.style.transform = `translateX(${-index * 50}%)`; // 每次移动50%
+        }
+
+        function nextSlide() {
+            if (currentIndex < totalSlides - 2) { // 一次显示两张卡片
+                currentIndex++;
+                showSlide(currentIndex);
+            }
+        }
+
+        function prevSlide() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showSlide(currentIndex);
+            }
+        }
+
+        // 初始化显示第一组卡片
+        showSlide(currentIndex);
+
+        // 通知功能
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 切换媒体播放状态
+        function toggleMedia() {
+            const indicator = document.querySelectorAll('.card:nth-child(3) .status-indicator')[0];
+            indicator.classList.toggle('status-off');
+            const status = indicator.classList.contains('status-off') ? '媒体已暂停' : '媒体播放中';
+            showNotification(status);
+        }
+        
+        // 切换音乐播放状态
+        function toggleMusic() {
+            const indicator = document.querySelectorAll('.card:nth-child(8) .status-indicator')[0];
+            indicator.classList.toggle('status-off');
+            const status = indicator.classList.contains('status-off') ? '音乐已暂停' : '音乐播放中';
+            showNotification(status);
+        }
+        
+        // 切换摄像头状态
+        function toggleCamera() {
+            const indicator = document.querySelectorAll('.card:nth-child(6) .status-indicator')[0];
+            indicator.classList.toggle('status-off');
+            const status = indicator.classList.contains('status-off') ? '摄像头已关闭' : '摄像头已开启';
+            showNotification(status);
+        }
+        
+        // 切换空调状态
+        function toggleAC() {
+            const indicator = document.querySelectorAll('.card:nth-child(9) .status-indicator')[0];
+            indicator.classList.toggle('status-off');
+            const status = indicator.classList.contains('status-off') ? '空调已关闭' : '空调已开启';
+            showNotification(status);
+        }
+        
+        // 初始化滑块事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const volumeSlider = document.getElementById('volume-slider');
+            const musicSlider = document.getElementById('music-slider');
+            const tempSlider = document.getElementById('temp-slider');
+            
+            volumeSlider.addEventListener('input', function() {
+                showNotification(`媒体音量调整至: ${this.value}%`);
+            });
+            
+            musicSlider.addEventListener('input', function() {
+                showNotification(`音乐音量调整至: ${this.value}%`);
+            });
+            
+            tempSlider.addEventListener('input', function() {
+                showNotification(`空调温度设置为: ${this.value}°C`);
+            });
+        });
+
+    // 左上角时间
     function updateTime() {
       const now = new Date();
-      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('time').innerText = timeString;
+      const timeStr = now.toLocaleTimeString();
+      document.getElementById('time-display').textContent = timeStr;
     }
     setInterval(updateTime, 1000);
     updateTime();
 
-    // 背景主题切换
-    function changeBg(from, to) {
-        document.body.style.background = `linear-gradient(to bottom right, ${from}, ${to})`;
-    }
+  // 仪表盘
+  var myChart = echarts.init(document.getElementById('gauge'));
+        // 指定图表的配置项和数据
+        var option = {
+		    backgroundColor: 'transparent',
+		    tooltip: {
+		        formatter: '{a} <br/>{c} {b}'
+		    },
+		    toolbox: {
+		        show: false,
+		        feature: {
+		            mark: {show: true},
+		            restore: {show: true},
+		            saveAsImage: {show: true}
+		        }
+		    },
+		    series: [
+		        {
+		            name: '速度',
+		            type: 'gauge',
+		            min: 0,
+		            max: 220,
+		            splitNumber: 11,
+		            radius: '85%',
+		            axisLine: {            // 坐标轴线
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: [[0.09, 'lime'], [0.82, '#1e90ff'], [1, '#ff4500']],
+		                    width: 3,
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            axisLabel: {            // 坐标轴小标记
+		                fontWeight: 'bolder',
+		                color: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 10
+		            },
+		            axisTick: {            // 坐标轴小标记
+		                length: 15,        // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: 'auto',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            splitLine: {           // 分隔线
+		                length: 25,         // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle（详见lineStyle）控制线条样式
+		                    width: 3,
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            pointer: {           // 分隔线
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5
+		            },
+		            title: {
+		                textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+		                    fontWeight: 'bolder',
+		                    fontSize: 14,
+		                    fontStyle: 'italic',
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            detail: {
+		                backgroundColor: 'rgba(30,144,255,0.8)',
+		                borderWidth: 1,
+		                borderColor: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5,
+		                offsetCenter: [0, '50%'],       // x, y，单位px
+                    padding: [1, 1],
+		                textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+		                    fontWeight: 'bolder',
+		                    color: '#fff',
+                        fontSize: 14
+		                }
+		            },
+		            data: [{value: 40, name: 'km/h'}]
+		        },
+		        {
+		            name: '转速',
+		            type: 'gauge',
+		            center: ['19%', '53%'],    // 默认全局居中
+		            radius: '60%',
+		            min: 0,
+		            max: 7,
+		            endAngle: 45,
+		            splitNumber: 7,
+		            axisLine: {            // 坐标轴线
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: [[0.29, 'lime'], [0.86, '#1e90ff'], [1, '#ff4500']],
+		                    width: 2,
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            axisLabel: {            // 坐标轴小标记
+		                fontWeight: 'bolder',
+		                color: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 10
+		            },
+		            axisTick: {            // 坐标轴小标记
+		                length: 12,        // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: 'auto',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            splitLine: {           // 分隔线
+		                length: 20,         // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle（详见lineStyle）控制线条样式
+		                    width: 3,
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            pointer: {
+		                width: 5,
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5
+		            },
+		            title: {
+		                offsetCenter: [0, '-30%'],       // x, y，单位px
+		                textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+		                    fontWeight: 'bolder',
+		                    fontStyle: 'italic',
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            detail: {
+		                //backgroundColor: 'rgba(30,144,255,0.8)',
+		                // borderWidth: 1,
+		                borderColor: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5,
+		                width: 80,
+		                height: 30,
+		                offsetCenter: [25, '20%'],       // x, y，单位px
+		                textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+		                    fontWeight: 'bolder',
+		                    color: '#fff',
+                        fontSize: 14
+		                }
+		            },
+		            data: [{value: 1.0, name: 'x1000 r/min'}],
+                name: {
+                  fontSize: 5,
+                  color: '#fff',
+                }
+		        },
+		        {
+		            name: '油表',
+		            type: 'gauge',
+		            center: ['80%', '50%'],    // 默认全局居中
+		            radius: '55%',
+		            min: 0,
+		            max: 2,
+		            startAngle: 135,
+		            endAngle: 45,
+		            splitNumber: 2,
+		            axisLine: {            // 坐标轴线
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: [[0.2, 'lime'], [0.8, '#1e90ff'], [1, '#ff4500']],
+		                    width: 2,
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            axisTick: {            // 坐标轴小标记
+		                length: 12,        // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: 'auto',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            axisLabel: {
+		                fontWeight: 'bolder',
+		                color: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 10,
+		                formatter: function (v){
+		                    switch (v + '') {
+		                        case '0': return 'E';
+		                        case '1': return 'Gas';
+		                        case '2': return 'F';
+		                    }
+		                }
+		            },
+		            splitLine: {           // 分隔线
+		                length:15,         // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle（详见lineStyle）控制线条样式
+		                    width:3,
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            pointer: {
+		                width:2,
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5
+		            },
+		            title: {
+		                show: false
+		            },
+		            detail: {
+		                show: false
+		            },
+		            data: [{value: 0.5, name: 'gas'}]
+		        },
+		        {
+		            name: '水表',
+		            type: 'gauge',
+		            center: ['80%', '50%'],    // 默认全局居中
+		            radius: '55%',
+		            min: 0,
+		            max: 2,
+		            startAngle: 315,
+		            endAngle: 225,
+		            splitNumber: 2,
+		            axisLine: {            // 坐标轴线
+		                lineStyle: {       // 属性lineStyle控制线条样式
+		                    color: [[0.2, 'lime'], [0.8, '#1e90ff'], [1, '#ff4500']],
+		                    width: 2,
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            axisTick: {            // 坐标轴小标记
+		                show: false
+		            },
+		            axisLabel: {
+		                fontWeight: 'bolder',
+		                color: '#fff',
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 10,
+		                formatter: function(v){
+		                    switch (v + '') {
+		                        case '0': return 'H';
+		                        case '1': return 'Water';
+		                        case '2': return 'C';
+		                    }
+		                }
+		            },
+		            splitLine: {           // 分隔线
+		                length: 15,         // 属性length控制线长
+		                lineStyle: {       // 属性lineStyle（详见lineStyle）控制线条样式
+		                    width: 3,
+		                    color: '#fff',
+		                    shadowColor: '#fff', //默认透明
+		                    shadowBlur: 10
+		                }
+		            },
+		            pointer: {
+		                width: 2,
+		                shadowColor: '#fff', //默认透明
+		                shadowBlur: 5
+		            },
+		            title: {
+		                show: false
+		            },
+		            detail: {
+		                show: false
+		            },
+		            data:[{value: 0.5, name: 'gas'}]
+		        }
+		    ]
+		};
+		
+		setInterval(function (){
+		    option.series[0].data[0].value = (Math.random()*100).toFixed(2) - 0;
+		    option.series[1].data[0].value = (Math.random()*7).toFixed(2) - 0;
+		    option.series[2].data[0].value = (Math.random()*2).toFixed(2) - 0;
+		    option.series[3].data[0].value = (Math.random()*2).toFixed(2) - 0;
+		    myChart.setOption(option);
+		},2000);
 
     // 输出内容添加
-    const outputContent = document.getElementById("outputContent");
+    const outputContent = document.getElementById("output-box");
     const eventSource = new EventSource("/stream");
     eventSource.onmessage = function(event) {
       console.log("接收到系统日志：", event.data);
@@ -367,6 +563,6 @@ footer {
       console.error("SSE 错误：", err);
       outputContent.innerText = "连接已断开，请检查后端状态或刷新页面。";
     };
-  </script>
+    </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
     padding: 0;
     height: 100%;
     font-family: 'Segoe UI', sans-serif;
-    background: url("/static/bg.png") no-repeat center center fixed;
+    background: url("/static/1.jpg") no-repeat center center fixed;
     background-size: cover;
   }
 
@@ -24,7 +24,6 @@
     border-radius: 10px;
     box-shadow: 0 0 20px #00f0ff88;
     color: #0ff;
-    position: relative;
   }
 
   .login-container::before {
@@ -75,12 +74,24 @@
   .login-container button:hover {
     box-shadow: 0 0 10px #00f0ff;
   }
+
+.title {
+  position: absolute;
+  top: 100px;
+  width: 100%;
+  text-align: center;
+  font-size: 32px;
+  color: #00ccff;
+  font-weight: bold;
+  text-shadow: 0 0 10px #00ccff88;
+}
 </style>
 
 </head>
 <body>
+  <h1 class="title">🚗 车载智能多模态交互系统</h1>
   <div class="login-container">
-    <h2>车载系统登录</h2>
+    <h2>用户登录</h2>
     <form id="loginForm">
       <select name="role" required>
         <option value="">选择身份</option>
