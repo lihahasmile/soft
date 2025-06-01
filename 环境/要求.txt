@@ -21,3 +21,5 @@ whisper模型：tiny(已存在)
 pip install opencv
 
 可以直接使用我们的environment.yml进行conda虚拟环境配置，但是其中的ffmpeg仍然需要手动配置。
+
+pip install speechrecognition pydub pyaudio
