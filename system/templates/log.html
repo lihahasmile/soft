@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模态交互日志管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/log.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <h1>多模态交互日志管理系统</h1>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="搜索日志内容...">
+                <select id="searchBy">
+                    <option value="all">所有字段</option>
+                    <option value="id">ID</option>
+                    <option value="action">Action</option>
+                    <option value="username">用户名</option>
+                </select>
+                <button class="btn" id="searchBtn"><i class="fas fa-search"></i> 搜索</button>
+            </div>
+            <button class="btn" id="addLogBtn"><i class="fas fa-plus"></i> 添加新日志</button>
+        </header>
+        
+        <div class="dashboard">
+            <div class="card stat-card">
+                <i class="fas fa-database"></i>
+                <h3>总日志数量</h3>
+                <div class="value" id="totalLogs">0</div>
+            </div>
+            <div class="card stat-card">
+                <i class="fas fa-microphone"></i>
+                <h3>语音交互</h3>
+                <div class="value" id="voiceLogs">0</div>
+            </div>
+            <div class="card stat-card passenger-card">
+                <i class="fas fa-hand-sparkles"></i>
+                <h3>手势交互</h3>
+                <div class="value" id="gestureLogs">0</div>
+            </div>
+            <div class="card stat-card">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>面部与视线交互</h3>
+                <div class="value" id="faceLogs">0</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i class="fas fa-table"></i> 交互日志列表</h2>
+                </div>
+                
+                <div class="table-container">
+                    <table id="logsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户</th>
+                                <th>角色</th>
+                                <th>类型</th>
+                                <th>交互内容</th>
+                                <th>时间戳</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 日志数据将通过JS动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination" id="pagination">
+                    <!-- 分页按钮将通过JS动态生成 -->
+                </div>
+            </div>
+            
+            <div class="two-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i class="fas fa-chart-line"></i> 数据分析</h2>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="interactionChart"></canvas>
+                </div>
+                
+                <div class="gesture-chart" id="gestureChart">
+                    <!-- 手势分析将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑日志模态框 -->
+    <div class="modal" id="logModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加新日志</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="logForm">
+                <input type="hidden" id="logId">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" required placeholder="输入用户名">
+                </div>
+                <div class="form-group">
+                    <label>交互角色</label>
+                    <select id="role" required>
+                        <option value="">选择角色</option>
+                        <option value="driver">驾驶员</option>
+                        <option value="passenger">乘客</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>交互类型</label>
+                    <select id="type" required>
+                        <option value="">选择类型</option>
+                        <option value="语音">语音</option>
+                        <option value="手势">手势</option>
+                        <option value="面部">面部与视线</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>交互内容</label>
+                    <textarea rows="3" id="action" required placeholder="输入交互内容..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline close-modal">取消</button>
+                    <button type="submit" class="btn">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 显示
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取日志数据
+            function fetchLogs(page = 1, search = '', searchBy = 'all') {
+                fetch(`/logs/get_logs?search=${search}&search_by=${searchBy}&page=${page}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 更新日志表格
+                        const logsTableBody = document.querySelector('#logsTable tbody');
+                        logsTableBody.innerHTML = '';
+                        
+                        data.logs.forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${log.id}</td>
+                                <td>${log.username}</td>
+                                <td>${log.role}</td>
+                                <td>${log.type}</td>
+                                <td>${log.action}</td>
+                                <td>${new Date(log.timestamp).toLocaleString()}</td>
+                                <td>
+                                    <div class="button-container">
+                                        <button class="btn btn-sm edit-btn" data-id="${log.id}">编辑</button>
+                                        <button class="btn btn-sm delete-btn" data-id="${log.id}">删除</button>
+                                    </div>
+                                </td>
+                            `;
+                            logsTableBody.appendChild(row);
+                        });
+                        
+                        // 更新分页
+                        const pagination = document.getElementById('pagination');
+                        pagination.innerHTML = '';
+                        
+                        const totalPages = data.total_pages;
+                        for (let i = 1; i <= totalPages; i++) {
+                            const pageBtn = document.createElement('button');
+                            pageBtn.textContent = i;
+                            pageBtn.classList.add('page-btn');
+                            if (i === data.current_page) {
+                                pageBtn.classList.add('active');
+                            }
+                            pageBtn.addEventListener('click', () => fetchLogs(i, search));
+                            pagination.appendChild(pageBtn);
+                        }
+                        
+                        // 更新统计信息
+                        document.getElementById('totalLogs').textContent = data.total;
+                        
+                        // 获取详细统计
+                        fetch('/logs/stats')
+                            .then(response => response.json())
+                            .then(stats => {
+                                // 从role_stats中提取
+                                const roleStats = stats.type_stats;
+                                document.getElementById('voiceLogs').textContent = roleStats['语音'] || 0;
+                                document.getElementById('gestureLogs').textContent = roleStats['手势'] || 0;
+                                document.getElementById('faceLogs').textContent = roleStats['面部'] || 0;
+                                
+                                // 更新图表
+                                updateCharts(stats);
+                            });
+                    });
+            }
+            
+            // 初始化图表
+            let interactionChart;
+            function updateCharts(stats) {
+                const ctx = document.getElementById('interactionChart').getContext('2d');
+                
+                if (interactionChart) {
+                    interactionChart.destroy();
+                }
+                
+                // 从统计中提取角色数据
+                const roleStats = stats.role_stats;
+                const labels = Object.keys(roleStats);
+                const dataValues = Object.values(roleStats);
+                
+                interactionChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '交互数量',
+                            data: dataValues,
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 99, 132, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 初始加载日志
+            fetchLogs(1, '');
+            
+            // 搜索框按钮点击事件
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                const searchInput = document.getElementById('searchInput').value;
+                const searchBy = document.getElementById('searchBy').value; // 获取搜索字段
+                fetchLogs(1, searchInput, searchBy);
+            });
+            
+            // 添加日志按钮点击事件
+            document.getElementById('addLogBtn').addEventListener('click', function() {
+                document.getElementById('modalTitle').textContent = '添加新日志';
+                document.getElementById('logId').value = '';
+                document.getElementById('logForm').reset();
+                document.getElementById('logModal').style.display = 'block';
+            });
+            
+            // 关闭模态框按钮点击事件
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('logModal').style.display = 'none';
+                });
+            });
+            
+            // 模态框外部点击关闭
+            window.addEventListener('click', function(event) {
+                if (event.target === document.getElementById('logModal')) {
+                    document.getElementById('logModal').style.display = 'none';
+                }
+            });
+            
+            // 提交日志表单
+            document.getElementById('logForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const logId = document.getElementById('logId').value;
+                const username = document.getElementById('username').value;
+                const role = document.getElementById('role').value;
+                const type = document.getElementById('type').value;
+                const action = document.getElementById('action').value;
+                
+                const formData = {
+                    username,
+                    role,
+                    type,
+                    action
+                };
+                
+                const apiUrl = logId ? `/logs/up_logs/${logId}` : '/logs/add_logs';
+                const method = logId ? 'PUT' : 'POST';
+                
+                fetch(apiUrl, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.id || data.success) {
+                        document.getElementById('logModal').style.display = 'none';
+                        fetchLogs(1, '');
+                    } else {
+                        alert('操作失败: ' + (data.error || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('请求出错');
+                });
+            });
+            
+            // 表格中的编辑按钮点击事件
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('edit-btn')) {
+                    const logId = e.target.dataset.id;
+                    fetch(`/logs/get_logs/${logId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(log => {
+                            document.getElementById('modalTitle').textContent = '编辑日志';
+                            document.getElementById('logId').value = log.id;
+                            document.getElementById('username').value = log.username || '';
+                            document.getElementById('role').value = log.role || '';
+                            document.getElementById('type').value = log.type || '';
+                            document.getElementById('action').value = log.action || '';
+                            document.getElementById('logModal').style.display = 'block';
+                        })
+                        .catch(error => {
+                            console.error('Error fetching log:', error);
+                            alert('获取日志失败，请检查网络连接或联系管理员。');
+                        });
+                } else if (e.target.classList.contains('delete-btn')) {
+                    const logId = e.target.dataset.id;
+                    if (confirm('确定要删除这条日志吗?')) {
+                        fetch(`/logs/de_logs/${logId}`, {
+                            method: 'DELETE',
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                fetchLogs(1, '');
+                            } else {
+                                alert('删除失败: ' + data.error);
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

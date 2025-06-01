@@ -1,103 +1,208 @@
 import sqlite3
+from flask import Blueprint, request, jsonify
+import time
+import json
+
+# 创建蓝图
+log_bp = Blueprint('log', __name__)
+
+# 获取数据库连接
+def get_db_connection():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # ✅ 插入日志
-def insert_log(username, role, action):
+def insert_log(username, role,type, action):
     try:
-        conn = sqlite3.connect('database.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO logs (username, role, action) VALUES (?, ?, ?)", 
-                       (username, role, action))
+        # cursor.execute("INSERT INTO logs (username, role, action) VALUES (?, ?, ?)", 
+        #                (username, role, action))
+        cursor.execute("INSERT INTO log (username, role, type, action) VALUES (?, ?, ?, ?)", 
+                       (username, role, type, action))
         conn.commit()
         conn.close()
         print("[日志写入]")
     except Exception as e:
         print(f"[日志写入失败] {e}")
 
-# # ✅ 获取日志（全部、按用户名、按类型）
-# @app.route('/get_logs', methods=['GET'])
-# def get_logs():
-#     if 'username' not in session or session['role'] != 'admin':
-#         return redirect('/login')
 
-#     conn = sqlite3.connect('database.db')
-#     cursor = conn.cursor()
-#     query = "SELECT id, username, role, action, timestamp FROM logs WHERE 1=1"
-#     params = []
-
-#     username = request.args.get("username")
-#     action = request.args.get("action")
-
-#     if username:
-#         query += " AND username=?"
-#         params.append(username)
-#     if action:
-#         query += " AND action LIKE ?"
-#         params.append(f"%{action}%")
-
-#     query += " ORDER BY timestamp DESC"
-#     cursor.execute(query, params)
-#     logs = cursor.fetchall()
-#     conn.close()
-#     return render_template('logs.html', logs=logs)
-
-# # ✅ 删除所有日志
-# @app.route('/logs/delete_all', methods=['POST'])
-# def delete_all_logs():
-#     if 'username' not in session or session['role'] != 'admin':
-#         return jsonify(success=False, message="无权限")
-
-#     conn = sqlite3.connect('database.db')
-#     cursor = conn.cursor()
-#     cursor.execute("DELETE FROM logs")
-#     conn.commit()
-#     conn.close()
-#     return jsonify(success=True, message="已删除所有日志")
-
-# # ✅ 删除指定用户的所有日志
-# @app.route('/logs/delete_user', methods=['POST'])
-# def delete_logs_by_username():
-#     if 'username' not in session or session['role'] != 'admin':
-#         return jsonify(success=False, message="无权限")
+# 获取日志数据
+@log_bp.route('/get_logs', methods=['GET'])
+def get_logs():
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-#     data = request.get_json()
-#     username = data.get('username')
-#     if not username:
-#         return jsonify(success=False, message="用户名不能为空")
+    # 获取查询参数
+    search = request.args.get('search', '')
+    search_by = request.args.get('search_by', 'all')  # 指定搜索的字段
+    page = int(request.args.get('page', 1))
+    per_page = 10
+    
+    # 构建查询
+    query = 'SELECT * FROM log'
+    params = []
+    
+    if search:
+        if search_by == 'id':
+            query += ' WHERE id LIKE ?'
+            params.append(f'%{search}%')
+        elif search_by == 'action':
+            query += ' WHERE action LIKE ?'
+            params.append(f'%{search}%')
+        elif search_by == 'username':
+            query += ' WHERE username LIKE ?'
+            params.append(f'%{search}%')
+        else:  # 默认搜索所有字段
+            query += ' WHERE action LIKE ? OR username LIKE ? OR role LIKE ? OR type LIKE ?'
+            search_param = f'%{search}%'
+            params.extend([search_param] * 4)
+    
+    # 分页
+    offset = (page - 1) * per_page
+    query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+    params.extend([per_page, offset])
+    
+    cursor.execute(query, params)
+    logs = cursor.fetchall()
+    
+    # 获取总数
+    count_query = 'SELECT COUNT(*) FROM log'
+    if search:
+        if search_by == 'id':
+            count_query += ' WHERE id LIKE ?'
+            cursor.execute(count_query, [f'%{search}%'])
+        elif search_by == 'action':
+            count_query += ' WHERE action LIKE ?'
+            cursor.execute(count_query, [f'%{search}%'])
+        elif search_by == 'username':
+            count_query += ' WHERE username LIKE ?'
+            cursor.execute(count_query, [f'%{search}%'])
+        else:
+            count_query += ' WHERE action LIKE ? OR username LIKE ? OR role LIKE ? OR type LIKE ?'
+            cursor.execute(count_query, [f'%{search}%' for _ in range(4)])
+    else:
+        cursor.execute(count_query)
+    
+    total = cursor.fetchone()[0]
+    total_pages = (total + per_page - 1) // per_page
+    
+    conn.close()
+    
+    # 转换为字典列表
+    logs_list = [dict(log) for log in logs]
+    
+    return jsonify({
+        'logs': logs_list,
+        'total': total,
+        'total_pages': total_pages,
+        'current_page': page
+    })
 
-#     conn = sqlite3.connect('database.db')
-#     cursor = conn.cursor()
-#     cursor.execute("DELETE FROM logs WHERE username=?", (username,))
-#     conn.commit()
-#     conn.close()
-#     return jsonify(success=True, message=f"已删除用户 {username} 的所有日志")
+# 获取单个日志
+@log_bp.route('/get_logs/<int:log_id>', methods=['GET'])
+def get_log(log_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM log WHERE id = ?', (log_id,))
+    log = cursor.fetchone()
+    conn.close()
+    
+    if log:
+        return jsonify(dict(log))
+    else:
+        return jsonify({'error': 'Log not found'}), 404
 
-# # ✅ 删除单条日志
-# @app.route('/logs/delete/<int:log_id>', methods=['POST'])
-# def delete_log(log_id):
-#     if 'username' not in session or session['role'] != 'admin':
-#         return jsonify(success=False, message="无权限")
+# 添加日志
+@log_bp.route('/add_logs', methods=['POST'])
+def add_log():
+    data = request.json
+    username = data.get('username')
+    role = data.get('role')
+    type = data.get('type')
+    action = data.get('action')
+    
+    if not username or not role or not type or not action:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO log (username, role, type, action) VALUES (?, ?, ?, ?)',
+        (username, role, type, action)
+    )
+    conn.commit()
+    log_id = cursor.lastrowid
+    conn.close()
+    
+    return jsonify({'id': log_id}), 201
 
-#     conn = sqlite3.connect('database.db')
-#     cursor = conn.cursor()
-#     cursor.execute("DELETE FROM logs WHERE id=?", (log_id,))
-#     conn.commit()
-#     conn.close()
-#     return jsonify(success=True, message="日志删除成功")
+# 更新日志
+@log_bp.route('/up_logs/<int:log_id>', methods=['PUT'])
+def update_log(log_id):
+    data = request.json
+    username = data.get('username')
+    role = data.get('role')
+    type = data.get('type')
+    action = data.get('action')
+    
+    if not username or not role or not type or not action:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'UPDATE log SET username = ?, role = ?, type = ?, action = ? WHERE id = ?',
+        (username, role, type, action, log_id)
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
 
-# # ✅ 更新日志内容
-# @app.route('/logs/update/<int:log_id>', methods=['POST'])
-# def update_log(log_id):
-#     if 'username' not in session or session['role'] != 'admin':
-#         return jsonify(success=False, message="无权限")
+# 删除日志
+@log_bp.route('/de_logs/<int:log_id>', methods=['DELETE'])
+def delete_log(log_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM log WHERE id = ?', (log_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
 
-#     data = request.get_json()
-#     new_action = data.get('action')
-#     if not new_action:
-#         return jsonify(success=False, message="操作内容不能为空")
+# 获取统计信息
+@log_bp.route('/stats', methods=['GET'])
+def get_stats():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 获取总日志数
+    cursor.execute('SELECT COUNT(*) FROM log')
+    total_logs = cursor.fetchone()[0]
+    
+    # 获取按角色统计的日志数
+    cursor.execute('SELECT role, COUNT(*) FROM log GROUP BY role')
+    role_stats = cursor.fetchall()
+    
+    # 获取按动作统计的日志数
+    cursor.execute('SELECT action, COUNT(*) FROM log GROUP BY action')
+    action_stats = cursor.fetchall()
 
-#     conn = sqlite3.connect('database.db')
-#     cursor = conn.cursor()
-#     cursor.execute("UPDATE logs SET action=? WHERE id=?", (new_action, log_id))
-#     conn.commit()
-#     conn.close()
-#     return jsonify(success=True, message="日志内容已更新")
+    # 获取按类型统计的日志数
+    cursor.execute('SELECT type, COUNT(*) FROM log GROUP BY type')
+    type_stats = cursor.fetchall()
+    
+    conn.close()
+    
+    roles = {row['role']: row[1] for row in role_stats}
+    actions = {row['action']: row[1] for row in action_stats}
+    types = {row['type']: row[1] for row in type_stats}
+    
+    return jsonify({
+        'total_logs': total_logs,
+        'role_stats': roles,
+        'action_stats': actions,
+        'type_stats': types
+    })

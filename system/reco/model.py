@@ -319,7 +319,7 @@ class DrivingSystem:
         if isinstance(result, dict) and "系统日志" in result:
             log_message = result["系统日志"]
             print("存储 logs:", log_message)
-            insert_log(self.username, self.role, log_message)
+            insert_log(self.username, self.role,"语音", log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
@@ -337,7 +337,7 @@ class DrivingSystem:
         if isinstance(result, dict) and "系统日志" in result:
             log_message = result["系统日志"]
             print("存储 logs:", log_message)
-            insert_log(self.username, self.role, log_message)
+            insert_log(self.username, self.role,"面部", log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
@@ -355,7 +355,7 @@ class DrivingSystem:
         if isinstance(result, dict) and "系统日志" in result:
             log_message = result["系统日志"]
             print("存储 logs:", log_message)
-            insert_log(self.username, self.role, log_message)
+            insert_log(self.username, self.role,"手势", log_message)
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")

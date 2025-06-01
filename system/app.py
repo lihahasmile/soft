@@ -11,10 +11,15 @@ import requests
 import os
 from collections import deque
 import sqlite3
+# 导入日志蓝图
+from logs.log import log_bp
 
 app = Flask(__name__)
 # python -c "import secrets; print(secrets.token_hex(32))"
 app.secret_key = '15d3e837bbe935321c7ee7cd00f6fd47058e5b74d5920ee2420cb7d937e5fc57'
+
+# 注册蓝图
+app.register_blueprint(log_bp, url_prefix='/logs')
 
 # === 全局共享资源 ===
 output_queue = deque()
@@ -157,7 +162,10 @@ def login():
         if user:
             session['username'] = username
             session['role'] = role
-            return jsonify({"success": True, "redirect_url": "/index"})
+            if user[3] == 'admin':  # 假设角色在用户表中的第4个字段
+                return jsonify({"success": True, "redirect_url": "/log"})
+            else:
+                return jsonify({"success": True, "redirect_url": "/index"})
         else:
             return jsonify({"success": False, "message": "用户名、密码或身份错误"})
 
@@ -191,6 +199,11 @@ def register():
             return f"注册失败：{str(e)}"
     else:
         return render_template('register.html')
+    
+# 管理员路由
+@app.route('/log')
+def load_log():
+    return render_template('log.html')
 
 # 主页路由
 @app.route('/index')

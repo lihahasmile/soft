@@ -22,4 +22,13 @@ CREATE TABLE logs (
 
 SELECT * FROM logs;
 
+CREATE TABLE log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    role TEXT,
+    type TEXT,
+    action TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 .quit/.exit
