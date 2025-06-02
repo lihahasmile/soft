@@ -134,9 +134,16 @@ class DrivingSystem:
         if "命令内容" in params:
             return {"command": params["命令内容"]}
         
-        # 处理手势参数
+        # 🔧 修复：处理用户姿态参数，保留原始信息
         if "用户姿态" in params:
-            return {"pos_type": params["用户姿态"], "action": params.get("动作", "默认动作")}
+            normalized = {
+                "pos_type": params["用户姿态"], 
+                "action": params.get("动作", "默认动作")
+            }
+            # 🔧 保留持续时间等其他重要信息
+            if "持续时间" in params:
+                normalized["duration"] = params["持续时间"]
+            return normalized
             
         return params
 
@@ -163,9 +170,18 @@ class DrivingSystem:
             }
             
             intent = data.get("intent", "")
+            normalized_params = self.normalize_params(intent, data.get("params", {}))
+            
+            # 🔧 添加调试日志
+            print(f"🔍 API解析调试:")
+            print(f"   原始intent: {intent}")
+            print(f"   标准化intent: {intent_map.get(intent, intent)}")
+            print(f"   原始params: {data.get('params', {})}")
+            print(f"   标准化params: {normalized_params}")
+            
             return {
                 "intent": intent_map.get(intent, intent),
-                "params": self.normalize_params(intent, data.get("params", {}))
+                "params": normalized_params
             }
             
         except (json.JSONDecodeError, IndexError) as e:
@@ -213,8 +229,12 @@ class DrivingSystem:
         except Exception as e:
             print(f"API调用错误: {str(e)}")
             return {"intent": "速度控制", "params": {"target_speed": 0}}
-
+    
+    
     def generate_safe_instruction(self, response: Dict[str, Any]) -> Dict[str, Any]:
+        print(f"🔍 generate_safe_instruction 调试:")
+        print(f"   输入response: {response}")
+        
         if response["intent"] == "紧急制动":
             return {
                 "强制指令": "EMG_BRAKE",
@@ -231,7 +251,7 @@ class DrivingSystem:
                 return {
                     "强制指令": "EMG_BRAKE",
                     "参数": {"force_level": 2},
-                    "系统日志": "握拳手势触发紧急停车"
+                    "系统日志": "握拳手势音乐暂停"
                 }
             
             if posture == "拇指向上":
@@ -248,8 +268,19 @@ class DrivingSystem:
                     "系统日志": "摇手表示拒绝"
                 }
         
+        # 🔧 修复：用户姿态处理逻辑
         if response["intent"] == "用户姿态":
-            posture = response["params"].get("pos_type") 
+            posture = response["params"].get("pos_type")  # 从标准化参数中获取
+            duration = response["params"].get("duration", "")  # 从标准化参数中获取持续时间
+            
+            print(f"🔍 用户姿态处理调试:")
+            print(f"   posture: {posture}")
+            print(f"   duration: {duration}")
+            
+            # 🔧 构建完整的姿态描述
+            full_posture = f"{posture}{duration}".replace(" ", "") if posture else ""
+            print(f"   full_posture: '{full_posture}'")
+
             if posture == "点头确认":
                 return {
                     "强制指令": "EMG_BRAKE",
@@ -271,11 +302,27 @@ class DrivingSystem:
                     "系统日志": "检测到用户低头玩手机，驾驶注意力可能不集中"
                 }
         
-            if posture == "注意力偏离超过3秒":
+            # 注意力偏离检测逻辑 - 添加乘客检查
+            if full_posture == "注意力偏离超过3秒" or posture == "注意力偏离":
+                print("🚨 检测到注意力偏离状态！")
+                
+                # 🔧 简单检查：如果是乘客，跳过警告
+                if self.role == 'passenger':
+                    print(f"👤 乘客用户，跳过注意力偏离警告")
+                    return {
+                        "强制指令": "PASSENGER_LOG",
+                        "系统日志": f"检测到注意力状态变化（乘客模式，无需警告）"
+                    }
+                
+                # 非乘客用户，正常触发注意力偏离警告（保持原有逻辑）
+                print("🚨 触发注意力偏离警告！")
                 return {
-                    "强制指令": "EMG_BRAKE",
-                    "参数": {"force_level": 2},
-                    "系统日志": "⚠ 警告：用户注意力偏离"
+                    "强制指令": "ATTENTION_WARNING",
+                    "参数": {"warning_level": "critical"},
+                    "系统日志": "⚠ 警告：用户注意力偏离",
+                    "警告类型": "attention_deviation",
+                    "需要音频警告": True,
+                    "警告消息": "警告！请注视前方"
                 }
             
             if posture == "向右说话" or posture == "向左说话":
@@ -288,6 +335,7 @@ class DrivingSystem:
         # 这一句是为了处理没有意图的情况
         rule = DRIVING_RULES.get(response["intent"])
         if not rule:
+            print(f"⚠ 未找到规则: {response['intent']}")
             return {"默认指令": "MAINTAIN_CURRENT_STATE"}
         
         safety_check = rule.get("safety_check", lambda x: True)
@@ -297,12 +345,16 @@ class DrivingSystem:
                 "参数": response["params"],
                 "系统日志": f"执行{response['intent']}操作"
             }
+        print(f"⚠ 安全检查失败: {response}")
         return {"默认指令": "MAINTAIN_CURRENT_STATE"}
+    
 
     def process_driving_command(self, input_text: str) -> Dict[str, Any]:
         processed = self.preprocess_driving_data(input_text)
         api_response = self.call_deepseek_driving_api(processed)
-        return self.generate_safe_instruction(api_response)
+        result = self.generate_safe_instruction(api_response)
+        print(f"🔍 最终处理结果: {result}")
+        return result
 
     def handle_transcription(self, text: str):
         """
@@ -323,7 +375,8 @@ class DrivingSystem:
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
-            self.output_condition.notify_all()  
+            self.output_condition.notify_all()
+
 
     def handle_status_change(self, text: str):
         """
@@ -341,7 +394,8 @@ class DrivingSystem:
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
-            self.output_condition.notify_all()  
+            self.output_condition.notify_all()
+    
 
     def handle_ges_change(self, text: str):
         """
@@ -359,7 +413,8 @@ class DrivingSystem:
         with self.output_condition:
             self.output_queue.append(result)
             print("📤 加入\n")
-            self.output_condition.notify_all()  
+            self.output_condition.notify_all()
+    
 
     def get_stream(self):
         def event_stream():

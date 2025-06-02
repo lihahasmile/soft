@@ -261,7 +261,7 @@ def voice_recognition():
     global system
     if 'username' not in session:
         return jsonify({"status": "error", "message": "用户未登录"})
-    
+
     try:
         # 获取音频数据
         if 'audio' in request.files:
@@ -273,41 +273,41 @@ def voice_recognition():
             if not audio_base64:
                 return jsonify({"status": "error", "message": "没有音频数据"})
             audio_data = base64.b64decode(audio_base64.split(',')[1] if ',' in audio_base64 else audio_base64)
-        
+
         print(f"[Web语音识别] 开始处理音频，大小: {len(audio_data)} bytes")
-        
+
         # 生成文件名（与原版格式一致）
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         audio_filename = f"web_record_{timestamp}.wav"
         audio_save_path = f"./reco/whis/test/{audio_filename}"
-        
+
         # 确保目录存在
         os.makedirs(os.path.dirname(audio_save_path), exist_ok=True)
-        
+
         # 音频格式转换（保持与原版兼容的格式）
         try:
             # 保存临时文件
             with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_file:
                 temp_file.write(audio_data)
                 temp_webm_path = temp_file.name
-            
+
             # 转换为与原版相同的格式（16kHz, 单声道）
             audio_segment = AudioSegment.from_file(temp_webm_path)
             audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
             audio_segment.export(audio_save_path, format="wav")
-            
+
             # 清理临时文件
             os.unlink(temp_webm_path)
             print(f"[Web语音识别] 音频已保存: {audio_save_path}")
-            
+
         except Exception as e:
             print(f"[Web语音识别] 音频转换失败: {e}")
             return jsonify({"status": "error", "message": f"音频格式转换失败: {str(e)}"})
-        
+
         # 🔧 使用原版的处理方式
         try:
             print("正在转录语音...")
-            
+
             # 直接使用原版的模型和参数
             model_path = "./reco/whis/tiny.pt"
             if os.path.exists(model_path):
@@ -317,27 +317,27 @@ def voice_recognition():
                 model = whisper.load_model("tiny")
                 print(f"[Web语音识别] 使用官方tiny模型")
             cc = OpenCC("t2s")
-            
+
             # 🔧 使用与原版完全相同的转录参数
             result = model.transcribe(audio_save_path, language="zh")
             text = cc.convert(result["text"])
-            
+
             print(f"[Web语音识别] 语音内容: {text}")
-            
+
             if text and text.strip():
                 # 🔧 使用原版的文本保存方式
                 txt_path = os.path.join("./reco/whis/test", f"web_转写_{timestamp}.txt")
                 with open(txt_path, "a", encoding="utf-8") as f:
                     f.write(f"[Web语音] {text}\n")
-                
+
                 # 🔧 触发原版的回调处理（如果存在）
                 if system and hasattr(system, 'voice_recognizer') and system.voice_recognizer.on_transcription:
                     print("触发原版转写回调...")
                     system.voice_recognizer.on_transcription(text)
-                
+
                 # 解析语音指令
                 command_result = parse_voice_command(text)
-                
+
                 # 添加到输出队列
                 with output_condition:
                     output_queue.append({
@@ -421,6 +421,51 @@ def test_voice():
     except Exception as e:
         print(f"[API异常] test_voice: {e}")
         traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)})
+
+# 注意力警告测试 API
+@app.route('/api/attention_deviation', methods=['POST'])
+def test_attention_warning():
+    """测试注意力偏离警告功能"""
+    if 'username' not in session:
+        return jsonify({"status": "error", "message": "用户未登录"})
+    
+    user_role = session.get('role', '')
+    username = session.get('username', '')
+    
+    try:
+        # 🔧 简单检查：如果是乘客，返回提示信息
+        if user_role == 'passenger':
+            print(f"👤 乘客用户尝试测试注意力警告")
+            return jsonify({
+                "status": "info", 
+                "message": "乘客模式下无需注意力偏离警告"
+            })
+        
+        # 非乘客用户，正常触发警告（保持原有逻辑）
+        warning_data = {
+            "强制指令": "ATTENTION_WARNING",
+            "参数": {"warning_level": "critical"},
+            "系统日志": "⚠ 警告：用户注意力偏离（测试）",
+            "警告类型": "attention_deviation",
+            "需要音频警告": True,
+            "警告消息": "测试警告！请注视前方"
+        }
+        
+        # 添加到输出队列
+        with output_condition:
+            output_queue.append(warning_data)
+            output_condition.notify_all()
+        
+        print(f"🧪 用户{username}测试注意力偏离警告已触发")
+        
+        return jsonify({
+            "status": "success",
+            "message": "注意力偏离警告测试已触发"
+        })
+        
+    except Exception as e:
+        print(f"[API异常] test_attention_warning: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
 # 下面两个api目前没有调用的
