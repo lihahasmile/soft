@@ -579,6 +579,127 @@
             color: #ff6b6b;
             border-color: rgba(255, 107, 107, 0.3);
         }
+        .attention-warning-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: urgentFlash 1s infinite;
+        }
+
+        .attention-warning-modal.show {
+            display: flex;
+        }
+
+        .attention-warning-content {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 3px solid #ffff00;
+            max-width: 500px;
+            position: relative;
+            animation: shake 0.5s infinite;
+        }
+
+        .warning-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+
+        .attention-warning-content h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #ffff00;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .attention-warning-content p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .attention-response-btn {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .attention-response-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 255, 0, 0.6);
+        }
+
+        .attention-timer {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #ffff00;
+            font-weight: bold;
+        }
+
+        #attention-countdown {
+            font-size: 24px;
+            color: #ffff00;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 🧪 测试按钮样式 */
+        .test-warning-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff4757);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            z-index: 1000;
+        }
+
+        .test-warning-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+
+        /* 动画效果 */
+        @keyframes urgentFlash {
+            0%, 50% { background: rgba(255, 0, 0, 0.8); }
+            51%, 100% { background: rgba(255, 100, 0, 0.8); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
     </style>
 </head>
 <body>
@@ -779,6 +900,41 @@
         操作成功！
     </div>
 
+    <!-- 🧪 测试注意力偏离警告按钮 -->
+    <button class="test-warning-btn" onclick="testAttentionWarning()" title="测试注意力偏离警告">
+        <i class="fas fa-exclamation-triangle"></i> 测试警告
+    </button>
+
+    <!-- 音频元素 -->
+    <audio id="warn1-audio" preload="auto">
+        <source src="/static/audio/warn1.mp3" type="audio/mpeg">
+        <source src="/static/audio/warn1.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <audio id="warn2-audio" preload="auto">
+        <source src="/static/audio/warn2.mp3" type="audio/mpeg">
+        <source src="/static/audio/warn2.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 注意力偏离警告弹窗 -->
+    <div class="attention-warning-modal" id="attention-warning-modal">
+        <div class="attention-warning-content">
+            <div class="warning-icon">⚠️</div>
+            <h2>注意力偏离警告</h2>
+            <p id="attention-warning-message">警告！请注视前方</p>
+            <div class="warning-buttons">
+                <button class="attention-response-btn" onclick="respondToAttentionWarning()">
+                    我已注意
+                </button>
+            </div>
+            <div class="attention-timer">
+                <span id="attention-countdown">10</span> 秒后将升级警告
+            </div>
+        </div>
+    </div>
+
    <script>
     let currentIndex = 0;
     const slides = document.querySelectorAll('.card');
@@ -798,6 +954,45 @@
         media: { status: "暂停", volume: 70 }
     };
 
+    // 测试注意力偏离警告功能添加乘客检查
+    async function testAttentionWarning() {
+        console.log('🧪 测试注意力偏离警告');
+        
+        // 🔧 简单检查：如果是乘客，提示权限不足
+        const userRole = "{{ role }}";
+        if (userRole === 'passenger') {
+            showNotification('乘客模式下无需注意力偏离警告', 'info');
+            addLogEntry('👤 乘客用户尝试测试注意力警告');
+            return;
+        }
+        
+        // 原有的测试逻辑保持不变
+        try {
+            const response = await fetch('/api/attention_deviation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                addLogEntry('🧪 注意力偏离警告测试已启动');
+                showNotification('注意力偏离警告测试已启动', 'info');
+            } else {
+                addLogEntry(`❌ 测试失败: ${result.message}`);
+                showNotification('测试失败', 'error');
+            }
+            
+        } catch (error) {
+            console.error('测试注意力偏离警告失败:', error);
+            addLogEntry(`❌ 测试异常: ${error.message}`);
+            showNotification('测试异常', 'error');
+        }
+    }
+
+
     // 更新语音状态显示
     function updateVoiceStatus(message, type = 'normal') {
         const statusElement = document.getElementById('voice-status');
@@ -814,7 +1009,14 @@
     // 处理语音指令结果 - 关键函数
     function handleCommandResult(result) {
         console.log('处理指令结果:', result);
-        
+         
+         // 检查是否是注意力偏离警告
+        if (result.警告类型 === 'attention_deviation' && result.需要音频警告) {
+            const warningMessage = result.警告消息 || "警告！请注视前方";
+            showAttentionWarning(warningMessage);
+            return; // 注意力警告有特殊处理，不走常规流程
+        }
+
         if (result.success) {
             // 显示成功消息
             showNotification(result.message, 'success');
@@ -1502,19 +1704,255 @@
         myChart.setOption(option);
     }
 
-    // 修改EventSource处理函数，处理指令结果
+    // 注意力偏离警告相关变量
+    let attentionWarningActive = false;
+    let attentionWarningTimer = null;
+    let attentionCountdown = 10;
+    let attentionCountdownInterval = null;
+    let warn1Audio = null;
+    let warn2Audio = null;
+
+    // 初始化音频
+    function initAttentionAudio() {
+        warn1Audio = document.getElementById('warn1-audio');
+        warn2Audio = document.getElementById('warn2-audio');
+        
+        // 设置音频属性
+        if (warn1Audio) {
+            warn1Audio.volume = 0.8;
+            warn1Audio.loop = false;
+        }
+        
+        if (warn2Audio) {
+            warn2Audio.volume = 1.0;
+            warn2Audio.loop = true; // 第二个警告音频循环播放
+        }
+        
+        console.log('🔊 注意力警告音频初始化完成');
+    }
+
+    
+    // 函数开头添加乘客检查
+    function showAttentionWarning(message = "警告！请注视前方") {
+        // 🔧 简单检查：如果是乘客，直接返回不显示警告
+        const userRole = "{{ role }}";
+        if (userRole === 'passenger') {
+            console.log('👤 乘客用户，跳过注意力偏离警告');
+            addLogEntry('👤 乘客模式，无需注意力偏离警告');
+            return;
+        }
+        
+        // 原有的警告逻辑保持不变
+        if (attentionWarningActive) {
+            console.log('⚠️ 注意力警告已激活，跳过重复警告');
+            return;
+        }
+        
+        attentionWarningActive = true;
+        console.log('🚨 显示注意力偏离警告');
+        
+        // 显示警告弹窗
+        const modal = document.getElementById('attention-warning-modal');
+        const messageElement = document.getElementById('attention-warning-message');
+        
+        messageElement.textContent = message;
+        modal.classList.add('show');
+        
+        // 播放第一个警告音频
+        playWarn1Audio();
+        
+        // 开始倒计时
+        startAttentionCountdown();
+        
+        // 10秒后如果没有响应，播放第二个警告音频
+        attentionWarningTimer = setTimeout(() => {
+            if (attentionWarningActive) {
+                escalateAttentionWarning();
+            }
+        }, 10000);
+        
+        // 记录日志
+        addLogEntry('🚨 注意力偏离警告已触发');
+    }
+    
+
+    // 播放第一个警告音频
+    function playWarn1Audio() {
+        if (warn1Audio) {
+            warn1Audio.currentTime = 0;
+            warn1Audio.play().then(() => {
+                console.log('🔊 播放第一个警告音频');
+                addLogEntry('🔊 播放第一级警告音频');
+            }).catch(error => {
+                console.error('播放warn1音频失败:', error);
+                addLogEntry('❌ 第一级警告音频播放失败');
+            });
+        }
+    }
+
+    // 升级警告（播放第二个音频）
+    function escalateAttentionWarning() {
+        console.log('🚨 升级注意力警告');
+        
+        // 停止第一个音频
+        if (warn1Audio) {
+            warn1Audio.pause();
+            warn1Audio.currentTime = 0;
+        }
+        
+        // 播放第二个警告音频（循环）
+        if (warn2Audio) {
+            warn2Audio.currentTime = 0;
+            warn2Audio.play().then(() => {
+                console.log('🔊 播放第二个警告音频（循环）');
+                addLogEntry('🚨 播放第二级警告音频（循环）');
+            }).catch(error => {
+                console.error('播放warn2音频失败:', error);
+                addLogEntry('❌ 第二级警告音频播放失败');
+            });
+        }
+        
+        // 更新界面提示
+        const messageElement = document.getElementById('attention-warning-message');
+        messageElement.textContent = "严重警告！立即注视前方！";
+        
+        // 隐藏倒计时
+        const timerElement = document.querySelector('.attention-timer');
+        timerElement.style.display = 'none';
+    }
+
+    // 开始倒计时
+    function startAttentionCountdown() {
+        attentionCountdown = 10;
+        updateCountdownDisplay();
+        
+        attentionCountdownInterval = setInterval(() => {
+            attentionCountdown--;
+            updateCountdownDisplay();
+            
+            if (attentionCountdown <= 0) {
+                clearInterval(attentionCountdownInterval);
+            }
+        }, 1000);
+    }
+
+    // 更新倒计时显示
+    function updateCountdownDisplay() {
+        const countdownElement = document.getElementById('attention-countdown');
+        if (countdownElement) {
+            countdownElement.textContent = attentionCountdown;
+        }
+    }
+
+    // 响应注意力警告
+    function respondToAttentionWarning() {
+        console.log('✅ 用户响应注意力警告');
+        
+        // 清除警告状态
+        attentionWarningActive = false;
+        
+        // 清除计时器
+        if (attentionWarningTimer) {
+            clearTimeout(attentionWarningTimer);
+            attentionWarningTimer = null;
+        }
+        
+        if (attentionCountdownInterval) {
+            clearInterval(attentionCountdownInterval);
+            attentionCountdownInterval = null;
+        }
+        
+        // 停止所有音频
+        if (warn1Audio) {
+            warn1Audio.pause();
+            warn1Audio.currentTime = 0;
+        }
+        
+        if (warn2Audio) {
+            warn2Audio.pause();
+            warn2Audio.currentTime = 0;
+        }
+        
+        // 隐藏警告弹窗
+        const modal = document.getElementById('attention-warning-modal');
+        modal.classList.remove('show');
+        
+        // 重置界面
+        const messageElement = document.getElementById('attention-warning-message');
+        messageElement.textContent = "警告！请注视前方";
+        
+        const timerElement = document.querySelector('.attention-timer');
+        timerElement.style.display = 'block';
+        
+        // 显示成功响应消息
+        showNotification('✅ 注意力警告已确认', 'success');
+        addLogEntry('✅ 用户已响应注意力警告');
+    }
+
+    // 🔧 修复版本的EventSource处理函数
     function initEventSource() {
         const outputContent = document.getElementById("output-box");
         const eventSource = new EventSource("/stream");
         
         eventSource.onmessage = function(event) {
-            console.log("接收到数据：", event.data);
+            console.log("🔍 [EventSource] 原始数据：", event.data);
+            
             try {
                 const data = JSON.parse(event.data);
+                console.log("🔍 [EventSource] 解析后数据：", data);
+                console.log("🔍 [EventSource] 数据类型：", typeof data);
+                console.log("🔍 [EventSource] data.type：", data.type);
+                console.log("🔍 [EventSource] data.command_result：", data.command_result);
                 
+                // 🔧 第一优先级：检查command_result中的注意力偏离警告
+                if (data.command_result && data.command_result.警告类型 === 'attention_deviation') {
+                    console.log('🚨 [EventSource] 检测到注意力偏离警告（从command_result）');
+                    const warningMessage = data.command_result.警告消息 || "警告！请注视前方";
+                    showAttentionWarning(warningMessage);
+                    addLogEntry(`🚨 ${data.content || '注意力偏离警告'}`);
+                    return;
+                }
+                
+                // 🔧 第二优先级：检查消息类型为注意力警告
+                if (data.type === 'attention_warning') {
+                    console.log('🚨 [EventSource] 检测到注意力偏离警告（从type）');
+                    const warningMessage = data.command_result?.警告消息 || "警告！请注视前方";
+                    showAttentionWarning(warningMessage);
+                    addLogEntry(`🚨 ${data.content}`);
+                    return;
+                }
+                
+                // 🔧 第三优先级：检查content内容包含注意力偏离
+                if (data.content && typeof data.content === 'string' && data.content.includes('注意力偏离')) {
+                    console.log('🚨 [EventSource] 检测到注意力偏离警告（从content）');
+                    showAttentionWarning("警告！请注视前方");
+                    addLogEntry(`🚨 ${data.content}`);
+                    return;
+                }
+                
+                // 🔧 第四优先级：兼容性检查，字符串数据包含注意力偏离
+                if (typeof data === 'string' && data.includes('注意力偏离')) {
+                    console.log('🚨 [EventSource] 检测到注意力偏离警告（从字符串）');
+                    showAttentionWarning("警告！请注视前方");
+                    addLogEntry(`🚨 ${data}`);
+                    return;
+                }
+                
+
+
                 // 处理不同类型的消息
                 if (data.type === 'voice_command' || data.type === 'voice_recognition') {
                     addLogEntry(`🗣️ ${data.content}`);
+                    
+                    // 处理指令结果
+                    if (data.command_result) {
+                        setTimeout(() => {
+                            handleCommandResult(data.command_result);
+                        }, 100);
+                    }
+                } else if (data.type === 'system_command') {
+                    // 🔧 处理系统指令
+                    addLogEntry(`⚙️ ${data.content}`);
                     
                     // 处理指令结果
                     if (data.command_result) {
@@ -1530,15 +1968,33 @@
                 updateUIFromBackend(data);
                 
             } catch (e) {
+                console.error("🔧 [EventSource] 解析错误:", e);
+                console.error("🔧 [EventSource] 原始数据:", event.data);
+                
+                // 🔧 处理纯字符串数据（兼容原版）
+                if (typeof event.data === 'string' && event.data.includes('注意力偏离')) {
+                    console.log('🚨 [EventSource] 检测到注意力偏离警告（纯字符串）');
+                    showAttentionWarning("警告！请注视前方");
+                    addLogEntry(`🚨 ${event.data}`);
+                    return;
+                }
+                
                 addLogEntry(event.data);
             }
         };
         
         eventSource.onerror = function(err) {
-            console.error("SSE 错误：", err);
+            console.error("🔧 [EventSource] SSE 错误：", err);
             addLogEntry("❌ 连接已断开，请检查后端状态或刷新页面。");
         };
+        
+        eventSource.onopen = function(event) {
+            console.log("✅ [EventSource] SSE 连接已建立");
+            addLogEntry("✅ SSE 连接已建立");
+        };
     }
+   
+
 
     function addLogEntry(message) {
         const outputContent = document.getElementById("output-box");
@@ -1576,11 +2032,17 @@
         setInterval(updateTime, 1000);
         updateTime();
         
+        // 新增：初始化注意力警告音频
+        setTimeout(() => {
+            initAttentionAudio();
+        }, 1000);
+
         setTimeout(() => {
             addLogEntry('🚗 车载面板初始化完成，语音识别就绪');
             addLogEntry('💡 点击右下角麦克风图标开始语音交互');
             addLogEntry('🎤 支持的指令：打开/关闭空调、播放/暂停音乐、开启/关闭导航等');
             addLogEntry('✅ 语音识别模式：按需启动（只在点击录音按钮时进行识别）');
+            addLogEntry('🧪 测试功能：点击左下角"测试警告"按钮验证注意力偏离警告');
         }, 1000);
     });
 </script>

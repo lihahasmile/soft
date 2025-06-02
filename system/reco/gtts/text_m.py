@@ -49,3 +49,7 @@ def generate_tts_from_mixed_text(file_path):
 
 # 输入 txt 文件路径
 generate_tts_from_mixed_text("output.txt")
+
+
+# 语速加快： ffmpeg -i input.mp3 -filter:a "atempo=1.5" -vn output_fast.mp3
+# 提升音高：
