@@ -265,7 +265,7 @@ class DrivingSystem:
                 return {
                     "强制指令": "EMG_BRAKE",
                     "参数": {"force_level": 2},
-                    "系统日志": "摇手表示拒绝"
+                    "系统日志": "挥手表示启动语音服务"
                 }
         
         # 🔧 修复：用户姿态处理逻辑

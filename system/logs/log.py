@@ -12,6 +12,58 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# 下面两个函数记录习惯
+@log_bp.route('/update_habit', methods=['POST'])
+def update_habit():
+    data = request.json
+    username = data.get('username')
+    temperature = data.get('temperature')
+    music = data.get('music')
+    
+    if not username:
+        print(000)
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if temperature is None and music is None:
+        return jsonify({'error': 'Missing temperature and music'}), 400
+    
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # 查询是否已有记录
+    cursor.execute("SELECT * FROM habit WHERE username = ?", (username,))
+    result = cursor.fetchone()
+
+    if result:
+        # 记录已存在，根据字段进行更新
+        if temperature is not None:
+            print(111)
+            cursor.execute(
+                "UPDATE habit SET temperature = ? WHERE username = ?",
+                (temperature, username)
+            )
+        if music is not None:
+            cursor.execute(
+                "UPDATE habit SET music = ? WHERE username = ?",
+                (music, username)
+            )
+    else:
+        # 记录不存在，插入新行，未提供的字段使用默认值
+        cursor.execute(
+            "INSERT INTO habit (username, temperature, music) VALUES (?, ?, ?)",
+            (
+                username,
+                temperature if temperature is not None else 24,
+                music if music is not None else 50
+            )
+        )
+        print(222)
+
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
 # ✅ 插入日志
 def insert_log(username, role,type, action):
     try:

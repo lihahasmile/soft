@@ -468,74 +468,12 @@ def test_attention_warning():
         print(f"[API异常] test_attention_warning: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
-# 下面两个api目前没有调用的
-
-# 获取当前车辆状态API
-# @app.route('/api/vehicle_status')
-# def get_vehicle_status():
-#     """获取当前车辆状态"""
-#     global system
-#     if 'username' not in session:
-#         return jsonify({"status": "error", "message": "用户未登录"})
-    
-#     try:
-#         if system and hasattr(system, 'vehicle_state'):
-#             return jsonify({
-#                 "status": "success",
-#                 "vehicle_state": system.vehicle_state,
-#                 "user": {
-#                     "username": session['username'],
-#                     "role": session['role']
-#                 }
-#             })
-#         else:
-#             return jsonify({
-#                 "status": "error", 
-#                 "message": "系统未初始化",
-#                 "user": {
-#                     "username": session['username'],
-#                     "role": session['role']
-#                 }
-#             })
-#     except Exception as e:
-#         print(f"[API异常] get_vehicle_status: {e}")
-#         return jsonify({"status": "error", "message": str(e)})
-
-# # 健康检查API
-# @app.route('/api/health')
-# def health_check():
-#     """系统健康检查"""
-#     return jsonify({
-#         "status": "healthy",
-#         "timestamp": time.time(),
-#         "system_initialized": system is not None,
-#         "threads_started": threads_started.is_set(),
-#         "logged_in": 'username' in session,
-#         "user": session.get('username', 'anonymous') if 'username' in session else None,
-#         "voice_recognition_mode": "on_demand"  # 新增：标识语音识别为按需模式
-#     })
-
 # 退出登录
 @app.route('/logout')
 def logout():
     """用户退出登录"""
     session.clear()
     return redirect('/')
-
-# 用户信息API
-# @app.route('/api/user_info')
-# def get_user_info():
-#     """获取当前用户信息"""
-#     if 'username' not in session:
-#         return jsonify({"status": "error", "message": "用户未登录"})
-    
-#     return jsonify({
-#         "status": "success",
-#         "user": {
-#             "username": session['username'],
-#             "role": session['role']
-#         }
-#     })
 
 if __name__ == '__main__':
     try:

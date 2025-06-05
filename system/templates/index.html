@@ -1085,6 +1085,9 @@
             const tempSlider = document.getElementById('temp-slider');
             if (tempDisplay) tempDisplay.textContent = `温度: ${updates.ac_temp}°C`;
             if (tempSlider) tempSlider.value = updates.ac_temp;
+
+            // 保存到数据库
+            updateHabit(0, updates.ac_temp);
         }
         
         // 更新音量显示
@@ -1093,6 +1096,9 @@
             const volumeSlider = document.getElementById('music-slider');
             if (volumeDisplay) volumeDisplay.textContent = `音量: ${updates.music_volume}%`;
             if (volumeSlider) volumeSlider.value = updates.music_volume;
+
+            // 保存到数据库
+            updateHabit(1, updates.ac_temp);
         }
         
         // 更新导航目的地
@@ -1271,7 +1277,9 @@
                 showNotification(`✅ 识别成功: ${recognizedText}`, 'success');
                 addLogEntry(`✅ Whisper识别结果: ${recognizedText}`);
                 updateVoiceStatus(`✅ 识别成功: ${recognizedText}`, 'normal');
-                
+                setTimeout(() => {
+                sendTextCommand(recognizedText);
+                }, 300);
                 // 处理指令结果
                 if (result.command_result) {
                     setTimeout(() => {
@@ -1306,6 +1314,36 @@
             isProcessing = false;
         }
     }
+    function sendTextCommand(command) {
+    if (!command) return;
+    if (isProcessing) return;
+
+    isProcessing = true;
+    updateVoiceStatus('🔄 正在处理指令...', 'processing');
+
+    fetch('/api/test_voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: command })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.status === 'success' && result.command_result) {
+            handleCommandResult(result.command_result);
+        } else {
+            showNotification(result.message || '❌ 指令执行失败', 'error');
+            addLogEntry(`❌ ${result.message}`);
+            updateVoiceStatus(`❌ ${result.message}`, 'error');
+        }
+    })
+    .catch(err => {
+        showNotification('❌ 网络异常，指令未发送', 'error');
+        updateVoiceStatus('❌ 网络错误', 'error');
+    })
+    .finally(() => {
+        isProcessing = false;
+    });
+   }
 
     function showSlide(index) {
         const slider = document.getElementById('card-slider');
@@ -1576,20 +1614,68 @@
             vehicleState.media.volume = parseInt(this.value);
             document.getElementById('media-volume').textContent = `音量: ${this.value}%`;
             showNotification(`媒体音量调整至: ${this.value}%`, 'info');
+
+            // // 保存到数据库
+            // updateHabit(1, this.value);
         });
         
         musicSlider.addEventListener('input', function() {
             vehicleState.music.volume = parseInt(this.value);
             document.getElementById('music-volume').textContent = `音量: ${this.value}%`;
             sendCommandToBackend(`音量调到${this.value}`);
+            // // 保存到数据库
+            // updateHabit(1, this.value);
         });
         
         tempSlider.addEventListener('input', function() {
             vehicleState.ac.temperature = parseInt(this.value);
             document.getElementById('ac-temp').textContent = `温度: ${this.value}°C`;
             sendCommandToBackend(`调到${this.value}度`);
+            // 保存到数据库
+            // updateHabit(0, this.value);
         });
     }
+
+function updateHabit(tp, val) {
+    const username = "{{ username }}";
+    console.log("用户名是:", "{{ username }}");
+
+    const bodyData = {
+        username: username
+    };
+
+    if (tp === 0) {
+        console.log(`🟡 [调试] 尝试更新温度为 ${val}`);
+        bodyData.temperature = val;
+    } else if (tp === 1) {
+        console.log(`🟡 [调试] 尝试更新音量为 ${val}`);
+        bodyData.music = val;
+    } else {
+        console.warn("⚠️ [调试] updateHabit 参数 tp 非法，必须为 0 或 1");
+        return;
+    }
+
+    console.log('📤 [调试] 发送数据:', bodyData);
+
+    fetch('/logs/update_habit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bodyData)
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (res.ok && data.success) {
+            console.log(`✅ [成功] ${tp === 0 ? '温度' : '音量'} = ${val} 已保存到数据库`);
+        } else {
+            console.warn(`❌ [失败] 状态码: ${res.status}, 响应:`, data);
+        }
+    })
+    .catch(err => {
+        console.error('❌ [异常] 与后端通信失败:', err);
+    });
+}
 
     function updateTime() {
         const now = new Date();
@@ -1910,9 +1996,39 @@
                 showNotification('握拳手势触发音乐暂停');
                
             }
-            if(message.includes('竖起大拇指表示确认')&&attentionWarningActive){
+            if((message.includes('竖起大拇指表示确认'))&&attentionWarningActive){
                 respondToAttentionWarning()
             }
+            if((message.includes('检测到用户点头，表示确认'))&&attentionWarningActive){
+                respondToAttentionWarning()
+            }
+            if (message.includes('挥手表示启动语音服务')) {
+                showNotification('👋 检测到挥手，语音助手已激活', 'info');
+                 if (isRecording || isProcessing) {
+                    showNotification('🎤 已在录音中，请稍后再挥手', 'info');
+                    return;
+                }
+                // 如果未激活语音面板，则打开
+                if (!isListening) {
+                    toggleVoiceListening();
+                }
+
+                // 等待面板动画加载完毕，再开始录音
+                setTimeout(() => {
+                    if (!isRecording) {
+                        startRecording();  // 自动开始录音
+                    }
+                }, 500); // 等待面板展开动画（300ms左右）
+            }
+            if (message.includes('检测到用户摇头，已拒绝相关操作')) {
+                if (isRecording) {
+                    stopRecording();
+                }
+                closeVoicePanel();
+                showNotification('🙅 摇头取消 - 已终止语音交互', 'info');
+                addLogEntry('🙅 用户通过摇头取消了语音操作');
+            }
+
             // 在日志区域显示消息
             addLogEntry(`📝 ${message}`);
          
