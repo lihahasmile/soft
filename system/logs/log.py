@@ -259,6 +259,26 @@ def delete_log(log_id):
     return jsonify({'success': True})
 
 # 获取统计信息
+@log_bp.route('/habit_list')
+def habit_list():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, temperature, music, media FROM habit")
+    rows = cursor.fetchall()
+    conn.close()
+
+    habits = [
+        {
+            'username': row[0],
+            'temperature': row[1],
+            'music': row[2],
+            'media': row[3]
+        }
+        for row in rows
+    ]
+
+    return jsonify({'habits': habits})
+
 @log_bp.route('/stats', methods=['GET'])
 def get_stats():
     conn = get_db_connection()

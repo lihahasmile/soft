@@ -1,3 +1,70 @@
+.habit-user-list {
+    display: flex;
+    flex-direction: row;        /* 横向排列 */
+    overflow-x: auto;           /* 横向滚动（超出显示）*/
+    gap: 1rem;
+    padding: 0.5rem;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+}
+
+/* 可选美化横向滚动条 */
+.habit-user-list::-webkit-scrollbar {
+    height: 8px;
+}
+.habit-user-list::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 4px;
+}
+
+.habit-card {
+    min-width: 240px;
+    flex-shrink: 0;              /* 防止卡片被压缩 */
+    background-color: #5dadc1;
+    border: 1px solid #b2d2ec;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.habit-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.habit-header {
+    font-weight: bold;
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.habit-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.habit-item {
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    color: #444;
+}
+
+.scroll-tip {
+    font-size: 0.85rem;
+    color: #888;
+    text-align: center;
+    margin-top: 0.2rem;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+.scroll-tip {
+    display: none;  /* 默认不显示 */
+}
+
         :root {
             --primary: #00ffea;
             --secondary: #0084ff;

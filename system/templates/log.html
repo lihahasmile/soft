@@ -83,6 +83,14 @@
             
             <div class="two-panel">
                 <div class="panel-header">
+                    <div class="scroll-tip">← 滑动查看更多用户 →</div>
+                    <h2 class="panel-title"><i class="fas fa-users-cog"></i> 各用户习惯</h2>
+                </div>
+                <div class="habit-user-list" id="habitUserList" style="padding: 1rem;">
+                    <!-- 用户习惯列表通过 JS 动态填充 -->
+                </div>
+
+                <div class="panel-header">
                     <h2 class="panel-title"><i class="fas fa-chart-line"></i> 数据分析</h2>
                 </div>
                 
@@ -367,6 +375,44 @@
                 }
             });
         });
+
+// 获取每个用户的习惯数据
+const habitList = document.getElementById('habitUserList');
+const scrollTip = document.querySelector('.scroll-tip');
+
+if (habitList.scrollWidth > habitList.clientWidth) {
+    scrollTip.style.display = 'block';
+} else {
+    scrollTip.style.display = 'none';
+}
+
+fetch('/logs/habit_list')
+    .then(res => res.json())
+    .then(data => {
+        const listContainer = document.getElementById('habitUserList');
+        if (!data.habits || data.habits.length === 0) {
+            listContainer.innerHTML = '<p>暂无用户习惯数据</p>';
+            return;
+        }
+
+        data.habits.forEach(habit => {
+            const userCard = document.createElement('div');
+            userCard.classList.add('habit-card');
+            userCard.innerHTML = `
+                <div class="habit-header">👤 ${habit.username}</div>
+                <div class="habit-values">
+                    <div class="habit-item">🌡️ 空调温度：<span>${habit.temperature}°C</span></div>
+                    <div class="habit-item">🎵 音乐音量：<span>${habit.music}%</span></div>
+                    <div class="habit-item">🔊 媒体音量：<span>${habit.media}%</span></div>
+                </div>
+            `;
+            listContainer.appendChild(userCard);
+        });
+    })
+    .catch(err => {
+        console.warn('❌ 获取用户习惯列表失败:', err);
+    });
+
     </script>
 </body>
 </html>
