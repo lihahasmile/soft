@@ -144,7 +144,7 @@ def parse_voice_command(text):
                             "ui_updates": {"ac_temp": temp, "highlight_card": "ac"}
                         })
         
-        # 音乐控制 - 支持繁简体
+        # 多媒体与音乐控制 - 支持繁简体
         elif any(keyword in text for keyword in ["音乐", "歌曲", "播放", "音樂", "歌曲", "播放", "音响", "音響", "媒体", "媒體"]):
             if any(keyword in text for keyword in ["播放", "开始", "放", "播放", "開始", "放", "启动", "啟動", "打开", "打開"]):
                 vehicle_status["music"]["status"] = "播放"
@@ -164,7 +164,21 @@ def parse_voice_command(text):
                     "status_changes": {"music": vehicle_status["music"]},
                     "ui_updates": {"music_indicator": "off", "highlight_card": "music"}
                 })
-            elif any(keyword in text for keyword in ["音量", "音量", "声音", "聲音", "大小", "大小"]):
+            elif any(keyword in text for keyword in ["媒体", "多媒体", "视频"]):
+                import re
+                volume_match = re.search(r'(\d+)', text)
+                if volume_match:
+                    volume = int(volume_match.group(1))
+                    if 0 <= volume <= 100:
+                        vehicle_status["media"]["volume"] = volume
+                        result.update({
+                            "success": True,
+                            "message": f"媒体音量已调至{volume}%",
+                            "action": "media_volume",
+                            "status_changes": {"media": vehicle_status["media"]},
+                            "ui_updates": {"media_volume": volume, "highlight_card": "media"}
+                        })
+            elif any(keyword in text for keyword in ["音量", "音量", "声音", "聲音", "大小", "大小","音乐"]):
                 import re
                 volume_match = re.search(r'(\d+)', text)
                 if volume_match:
@@ -173,7 +187,7 @@ def parse_voice_command(text):
                         vehicle_status["music"]["volume"] = volume
                         result.update({
                             "success": True,
-                            "message": f"音量已调至{volume}%",
+                            "message": f"音乐音量已调至{volume}%",
                             "action": "music_volume",
                             "status_changes": {"music": vehicle_status["music"]},
                             "ui_updates": {"music_volume": volume, "highlight_card": "music"}

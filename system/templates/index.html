@@ -6,701 +6,8 @@
     <title>智能车载控制面板</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.0/echarts.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 30px;
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #00ffff, #0099ff);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #000;
-        }
-
-        .user-details {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .username {
-            font-size: 16px;
-            font-weight: bold;
-            color: #00ffff;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: #cccccc;
-        }
-
-        .time {
-            font-size: 20px;
-            font-weight: bold;
-            color: #00ffff;
-        }
-
-        .status-icons {
-            display: flex;
-            gap: 15px;
-        }
-
-        .status-icons i {
-            font-size: 18px;
-            color: #00ff88;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-link {
-            padding: 8px 16px;
-            background: rgba(0, 255, 255, 0.2);
-            color: #00ffff;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 255, 255, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .main {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            min-height: calc(100vh - 160px);
-        }
-
-        .left-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .warning-lights {
-            display: flex;
-            gap: 15px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .warning-light {
-            font-size: 20px;
-            color: #ffaa00;
-        }
-
-        .flashing {
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
-        }
-
-        #gauge {
-            height: 400px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            flex: 1;
-        }
-
-        .panel p {
-            color: #00ffff;
-            margin-bottom: 10px;
-            font-family: 'Courier New', monospace;
-        }
-
-        #live-output h2 {
-            color: #00ffff;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-
-        #output-box {
-            background: #001f33;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            color: #ffffff;
-            font-family: monospace;
-            font-size: 14px;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        #output-box p {
-            margin: 5px 0;
-            padding: 5px;
-            background: rgba(0, 255, 255, 0.1);
-            border-left: 3px solid #00ffff;
-            border-radius: 3px;
-        }
-
-        .right-panel {
-            flex: 2;
-        }
-
-        .card-container {
-            position: relative;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .card-slider {
-            display: flex;
-            gap: 20px;
-            transition: transform 0.3s ease;
-        }
-
-        .card {
-            min-width: calc(50% - 10px);
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
-        }
-
-        .card.active {
-            border-color: #00ffff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-            transform: translateY(-5px) scale(1.02);
-            background: rgba(0, 255, 255, 0.15);
-        }
-
-        .card.active::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #00ffff, #0099ff);
-        }
-
-        .card i {
-            font-size: 40px;
-            color: #00ffff;
-            margin-bottom: 15px;
-        }
-
-        .card h2 {
-            color: #ffffff;
-            margin-bottom: 10px;
-            font-size: 20px;
-        }
-
-        .card p {
-            color: #cccccc;
-            margin-bottom: 20px;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        /* 增强状态指示器样式 */
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #00ff88;
-            margin-left: 8px;
-            animation: pulse 2s infinite;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
-        }
-
-        .status-indicator.status-off {
-            background: #ff6b6b;
-            animation: none;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
-        }
-
-        /* 状态变化动画 */
-        @keyframes statusChange {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); box-shadow: 0 0 20px currentColor; }
-            100% { transform: scale(1); }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #0099ff, #00ffff);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(0, 153, 255, 0.4);
-        }
-
-        .slider-container {
-            margin: 15px 0;
-        }
-
-        .slider {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.2);
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00ffff;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-        }
-
-        .arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 255, 255, 0.8);
-            color: white;
-            border: none;
-            padding: 15px;
-            cursor: pointer;
-            font-size: 18px;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        .prev-arrow {
-            left: 10px;
-        }
-
-        .next-arrow {
-            right: 10px;
-        }
-
-        .arrow:hover {
-            background: rgba(0, 255, 255, 1);
-            transform: translateY(-50%) scale(1.1);
-        }
-
-        .footer {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .menu-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            color: #cccccc;
-        }
-
-        .menu-item:hover {
-            background: rgba(0, 255, 255, 0.2);
-            color: #00ffff;
-            transform: translateY(-2px);
-        }
-
-        .menu-item i {
-            font-size: 20px;
-        }
-
-        .menu-item span {
-            font-size: 12px;
-        }
-
-        /* 增强通知样式 */
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(106, 183, 255, 0.9));
-            color: #000;
-            padding: 20px 40px;
-            border-radius: 15px;
-            font-weight: bold;
-            z-index: 1000;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .notification.show {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translate(-50%, -50%) scale(1.05);
-        }
-
-        .voice-indicator {
-            position: fixed;
-            bottom: 100px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, #ff6b6b, #ff4757);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(255, 75, 87, 0.4);
-            z-index: 1000;
-        }
-
-        .voice-indicator:hover {
-            transform: scale(1.1);
-        }
-
-        .voice-indicator.listening {
-            animation: voicePulse 1.5s infinite;
-            background: radial-gradient(circle, #00ff88, #00d47a);
-        }
-
-        .voice-indicator.recording {
-            animation: recordingPulse 0.8s infinite;
-            background: radial-gradient(circle, #ff4757, #ff3742);
-        }
-
-        @keyframes voicePulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes recordingPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
-            50% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(255, 71, 87, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
-        }
-
-        .voice-panel {
-            position: fixed;
-            bottom: 170px;
-            right: 30px;
-            width: 320px;
-            background: rgba(0, 0, 0, 0.95);
-            border: 2px solid #00ffff;
-            border-radius: 15px;
-            padding: 20px;
-            display: none;
-            z-index: 999;
-            backdrop-filter: blur(10px);
-        }
-
-        .voice-panel.show {
-            display: block;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .voice-input {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #00ffff;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-
-        .voice-input::placeholder {
-            color: #aaa;
-        }
-
-        .voice-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .voice-btn {
-            flex: 1;
-            min-width: 100px;
-            padding: 10px 15px;
-            background: linear-gradient(45deg, #0099ff, #00ffff);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .voice-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
-        }
-
-        .voice-btn.recording {
-            background: linear-gradient(45deg, #ff4757, #ff6b6b);
-        }
-
-        .voice-btn.disabled {
-            background: #666;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .voice-btn i {
-            font-size: 16px;
-        }
-
-        .temp-display {
-            font-size: 24px;
-            font-weight: bold;
-            color: #00ffff;
-            margin: 10px 0;
-        }
-
-        .volume-display {
-            font-size: 18px;
-            color: #00ff88;
-            margin: 10px 0;
-        }
-
-        /* 语音识别状态指示 */
-        .voice-status {
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: rgba(0, 255, 255, 0.1);
-            border-radius: 5px;
-            font-size: 12px;
-            color: #00ffff;
-            text-align: center;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        .voice-status.processing {
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-            border-color: rgba(255, 193, 7, 0.3);
-        }
-
-        .voice-status.error {
-            background: rgba(255, 107, 107, 0.2);
-            color: #ff6b6b;
-            border-color: rgba(255, 107, 107, 0.3);
-        }
-        .attention-warning-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            animation: urgentFlash 1s infinite;
-        }
-
-        .attention-warning-modal.show {
-            display: flex;
-        }
-
-        .attention-warning-content {
-            background: linear-gradient(135deg, #ff4444, #cc0000);
-            color: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border: 3px solid #ffff00;
-            max-width: 500px;
-            position: relative;
-            animation: shake 0.5s infinite;
-        }
-
-        .warning-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: pulse 1s infinite;
-        }
-
-        .attention-warning-content h2 {
-            font-size: 28px;
-            margin-bottom: 20px;
-            color: #ffff00;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .attention-warning-content p {
-            font-size: 20px;
-            margin-bottom: 30px;
-            font-weight: bold;
-        }
-
-        .attention-response-btn {
-            background: linear-gradient(45deg, #00ff00, #00cc00);
-            color: #000;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
-        }
-
-        .attention-response-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(0, 255, 0, 0.6);
-        }
-
-        .attention-timer {
-            margin-top: 20px;
-            font-size: 16px;
-            color: #ffff00;
-            font-weight: bold;
-        }
-
-        #attention-countdown {
-            font-size: 24px;
-            color: #ffff00;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        /* 🧪 测试按钮样式 */
-        .test-warning-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 30px;
-            background: linear-gradient(45deg, #ff6b6b, #ff4757);
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            z-index: 1000;
-        }
-
-        .test-warning-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
-        }
-
-        /* 动画效果 */
-        @keyframes urgentFlash {
-            0%, 50% { background: rgba(255, 0, 0, 0.8); }
-            51%, 100% { background: rgba(255, 100, 0, 0.8); }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-    </style>
 </head>
 <body>
     <div class="header">
@@ -1045,6 +352,11 @@
                 case 'music_volume':
                     updateMusicUI();
                     break;
+                case 'media_play':
+                case 'media_pause':
+                case 'media_volume':
+                    updateMediaUI();
+                    break;
                 case 'nav_on':
                 case 'nav_off':
                 case 'nav_destination':
@@ -1078,6 +390,9 @@
         if (updates.camera_indicator) {
             updateStatusIndicator('camera-indicator', updates.camera_indicator === 'on');
         }
+        if(updates.media_indicator){
+            updateStatusIndicator('media-indicator', updates.media_indicator === 'on');
+        }
         
         // 更新温度显示
         if (updates.ac_temp) {
@@ -1090,7 +405,7 @@
             updateHabit(0, updates.ac_temp);
         }
         
-        // 更新音量显示
+        // 更新音乐音量显示
         if (updates.music_volume) {
             const volumeDisplay = document.getElementById('music-volume');
             const volumeSlider = document.getElementById('music-slider');
@@ -1098,7 +413,18 @@
             if (volumeSlider) volumeSlider.value = updates.music_volume;
 
             // 保存到数据库
-            updateHabit(1, updates.ac_temp);
+            updateHabit(1, updates.music_volume);
+        }
+
+        // 更新媒体音量显示
+        if (updates.media_volume) {
+            const volumeDisplay = document.getElementById('media-volume');
+            const volumeSlider = document.getElementById('volume-slider');
+            if (volumeDisplay) volumeDisplay.textContent = `音量: ${updates.media_volume}%`;
+            if (volumeSlider) volumeSlider.value = updates.media_volume;
+
+            // 保存到数据库
+            updateHabit(2, updates.media_volume);
         }
         
         // 更新导航目的地
@@ -1112,6 +438,51 @@
             highlightCardByType(updates.highlight_card);
         }
     }
+
+// 保存到数据库
+function updateHabit(tp, val) {
+    const username = "{{ username }}";
+    console.log("用户名是:", "{{ username }}");
+
+    const bodyData = {
+        username: username
+    };
+
+    if (tp === 0) {
+        console.log(`🟡 [调试] 尝试更新温度为 ${val}`);
+        bodyData.temperature = val;
+    } else if (tp === 1) {
+        console.log(`🟡 [调试] 尝试更新音乐音量为 ${val}`);
+        bodyData.music = val;
+    } else if (tp === 2) {
+        console.log(`🟡 [调试] 尝试更新媒体音量为 ${val}`);
+        bodyData.media = val;
+    } else {
+        console.warn("⚠️ [调试] updateHabit 参数 tp 非法，必须为 0 或 1");
+        return;
+    }
+
+    console.log('📤 [调试] 发送数据:', bodyData);
+
+    fetch('/logs/update_habit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bodyData)
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (res.ok && data.success) {
+            console.log(`✅ [成功] ${tp === 0 ? '温度' : tp === 1 ? '音乐音量' : '媒体音量'} = ${val} 已保存`);
+        } else {
+            console.warn(`❌ [失败] 状态码: ${res.status}, 响应:`, data);
+        }
+    })
+    .catch(err => {
+        console.error('❌ [异常] 与后端通信失败:', err);
+    });
+}
 
     // 根据类型高亮卡片
     function highlightCardByType(type) {
@@ -1462,6 +833,7 @@
     function toggleMedia() {
         vehicleState.media.status = vehicleState.media.status === "播放" ? "暂停" : "播放";
         updateMediaUI();
+        sendCommandToBackend(vehicleState.media.status === "播放" ? "多媒体播放" : "多媒体暂停");
     }
 
     function updateMediaUI() {
@@ -1613,69 +985,21 @@
         volumeSlider.addEventListener('input', function() {
             vehicleState.media.volume = parseInt(this.value);
             document.getElementById('media-volume').textContent = `音量: ${this.value}%`;
-            showNotification(`媒体音量调整至: ${this.value}%`, 'info');
-
-            // // 保存到数据库
-            // updateHabit(1, this.value);
+            sendCommandToBackend(`媒体音量调到${this.value}`);
         });
         
         musicSlider.addEventListener('input', function() {
             vehicleState.music.volume = parseInt(this.value);
             document.getElementById('music-volume').textContent = `音量: ${this.value}%`;
-            sendCommandToBackend(`音量调到${this.value}`);
-            // // 保存到数据库
-            // updateHabit(1, this.value);
+            sendCommandToBackend(`音乐音量调到${this.value}`);
         });
         
         tempSlider.addEventListener('input', function() {
             vehicleState.ac.temperature = parseInt(this.value);
             document.getElementById('ac-temp').textContent = `温度: ${this.value}°C`;
             sendCommandToBackend(`调到${this.value}度`);
-            // 保存到数据库
-            // updateHabit(0, this.value);
         });
     }
-
-function updateHabit(tp, val) {
-    const username = "{{ username }}";
-    console.log("用户名是:", "{{ username }}");
-
-    const bodyData = {
-        username: username
-    };
-
-    if (tp === 0) {
-        console.log(`🟡 [调试] 尝试更新温度为 ${val}`);
-        bodyData.temperature = val;
-    } else if (tp === 1) {
-        console.log(`🟡 [调试] 尝试更新音量为 ${val}`);
-        bodyData.music = val;
-    } else {
-        console.warn("⚠️ [调试] updateHabit 参数 tp 非法，必须为 0 或 1");
-        return;
-    }
-
-    console.log('📤 [调试] 发送数据:', bodyData);
-
-    fetch('/logs/update_habit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bodyData)
-    })
-    .then(async res => {
-        const data = await res.json();
-        if (res.ok && data.success) {
-            console.log(`✅ [成功] ${tp === 0 ? '温度' : '音量'} = ${val} 已保存到数据库`);
-        } else {
-            console.warn(`❌ [失败] 状态码: ${res.status}, 响应:`, data);
-        }
-    })
-    .catch(err => {
-        console.error('❌ [异常] 与后端通信失败:', err);
-    });
-}
 
     function updateTime() {
         const now = new Date();
@@ -1695,6 +1019,11 @@ function updateHabit(tp, val) {
             
             if (data.vehicle_state.music) {
                 updateMusicUI();
+            }
+
+            if(data.vehicle_state.media){
+                console.log("调节媒体")
+                updateMediaUI();
             }
             
             if (data.vehicle_state.navigation) {
@@ -2149,12 +1478,56 @@ function updateHabit(tp, val) {
         }
     });
 
+// 初始化温度和音量习惯
+function fetchInitHabit() {
+    const username = "{{ username }}";  // 从后端注入的模板变量
+    fetch(`/logs/init_habit?username=${encodeURIComponent(username)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const { temperature, music, media } = data.habit;
+
+                // 设置空调
+                vehicleState.ac.temperature = temperature;
+                document.getElementById('temp-slider').value = temperature;
+                document.getElementById('ac-temp').textContent = `温度: ${temperature}°C`;
+
+                // 设置音乐音量
+                vehicleState.music.volume = music;
+                document.getElementById('music-slider').value = music;
+                document.getElementById('music-volume').textContent = `音量: ${music}%`;
+
+                // 设置媒体音量
+                vehicleState.media.volume = media;
+                document.getElementById('volume-slider').value = media;
+                document.getElementById('media-volume').textContent = `音量: ${media}%`;
+
+                updateACUI();
+                updateMusicUI();
+                updateMediaUI();
+
+                console.log('✅ 初始化完成：温度=', temperature, ' 音量=', music);
+                addLogEntry(`✅ 载入用户习惯：温度 ${temperature}°C, 音量 ${music}%`);
+            } else {
+                initSliders();
+                console.warn('❌ 获取用户习惯失败：', data.message);
+                addLogEntry('⚠️ 未找到用户习惯，使用默认设置');
+            }
+        })
+        .catch(err => {
+            console.error('❌ 初始化用户习惯时出错:', err);
+            addLogEntry('❌ 获取用户习惯出错');
+        });
+}
+
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', function() {
         showSlide(currentIndex);
-        initSliders();
         initGauge();
         initEventSource();
+
+        // ✅ 加载用户音量与温度习惯
+        fetchInitHabit();
         
         // 初始化录音功能（延迟初始化，避免阻塞页面加载）
         setTimeout(() => {
@@ -2166,7 +1539,7 @@ function updateHabit(tp, val) {
         setInterval(updateTime, 1000);
         updateTime();
         
-        // 新增：初始化注意力警告音频
+        // 初始化注意力警告音频
         setTimeout(() => {
             initAttentionAudio();
         }, 1000);
