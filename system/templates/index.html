@@ -998,7 +998,7 @@ function updateHabit(tp, val) {
             vehicleState.ac.temperature = parseInt(this.value);
             document.getElementById('ac-temp').textContent = `温度: ${this.value}°C`;
             sendCommandToBackend(`调到${this.value}度`);
-        });
+        });init
     }
 
     function updateTime() {
@@ -1509,7 +1509,7 @@ function fetchInitHabit() {
                 console.log('✅ 初始化完成：温度=', temperature, ' 音量=', music);
                 addLogEntry(`✅ 载入用户习惯：温度 ${temperature}°C, 音量 ${music}%`);
             } else {
-                initSliders();
+                // initSliders();
                 console.warn('❌ 获取用户习惯失败：', data.message);
                 addLogEntry('⚠️ 未找到用户习惯，使用默认设置');
             }
@@ -1527,6 +1527,7 @@ function fetchInitHabit() {
         initEventSource();
 
         // ✅ 加载用户音量与温度习惯
+        initSliders();
         fetchInitHabit();
         
         // 初始化录音功能（延迟初始化，避免阻塞页面加载）
