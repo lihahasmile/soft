@@ -1271,7 +1271,9 @@
                 showNotification(`✅ 识别成功: ${recognizedText}`, 'success');
                 addLogEntry(`✅ Whisper识别结果: ${recognizedText}`);
                 updateVoiceStatus(`✅ 识别成功: ${recognizedText}`, 'normal');
-                
+                setTimeout(() => {
+                sendTextCommand(recognizedText);
+                }, 300);
                 // 处理指令结果
                 if (result.command_result) {
                     setTimeout(() => {
@@ -1306,6 +1308,36 @@
             isProcessing = false;
         }
     }
+    function sendTextCommand(command) {
+    if (!command) return;
+    if (isProcessing) return;
+
+    isProcessing = true;
+    updateVoiceStatus('🔄 正在处理指令...', 'processing');
+
+    fetch('/api/test_voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: command })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.status === 'success' && result.command_result) {
+            handleCommandResult(result.command_result);
+        } else {
+            showNotification(result.message || '❌ 指令执行失败', 'error');
+            addLogEntry(`❌ ${result.message}`);
+            updateVoiceStatus(`❌ ${result.message}`, 'error');
+        }
+    })
+    .catch(err => {
+        showNotification('❌ 网络异常，指令未发送', 'error');
+        updateVoiceStatus('❌ 网络错误', 'error');
+    })
+    .finally(() => {
+        isProcessing = false;
+    });
+   }
 
     function showSlide(index) {
         const slider = document.getElementById('card-slider');
@@ -1910,9 +1942,39 @@
                 showNotification('握拳手势触发音乐暂停');
                
             }
-            if(message.includes('竖起大拇指表示确认')&&attentionWarningActive){
+            if((message.includes('竖起大拇指表示确认'))&&attentionWarningActive){
                 respondToAttentionWarning()
             }
+            if((message.includes('检测到用户点头，表示确认'))&&attentionWarningActive){
+                respondToAttentionWarning()
+            }
+            if (message.includes('挥手表示启动语音服务')) {
+                showNotification('👋 检测到挥手，语音助手已激活', 'info');
+                 if (isRecording || isProcessing) {
+                    showNotification('🎤 已在录音中，请稍后再挥手', 'info');
+                    return;
+                }
+                // 如果未激活语音面板，则打开
+                if (!isListening) {
+                    toggleVoiceListening();
+                }
+
+                // 等待面板动画加载完毕，再开始录音
+                setTimeout(() => {
+                    if (!isRecording) {
+                        startRecording();  // 自动开始录音
+                    }
+                }, 500); // 等待面板展开动画（300ms左右）
+            }
+            if (message.includes('检测到用户摇头，已拒绝相关操作')) {
+                if (isRecording) {
+                    stopRecording();
+                }
+                closeVoicePanel();
+                showNotification('🙅 摇头取消 - 已终止语音交互', 'info');
+                addLogEntry('🙅 用户通过摇头取消了语音操作');
+            }
+
             // 在日志区域显示消息
             addLogEntry(`📝 ${message}`);
          
