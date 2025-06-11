@@ -329,11 +329,42 @@
             showNotification(result.message, 'success');
             addLogEntry(`✅ ${result.message}`);
             updateVoiceStatus(`✅ ${result.message}`, 'normal');
+            console.log('此时的温度:',vehicleState.ac.temperature)
             
             // 更新车辆状态
             if (result.status_changes) {
-                Object.assign(vehicleState, result.status_changes);
+                if(result.action === "ac_on"){
+                    vehicleState.ac.status = "开启";
+                }
+                if(result.action === "music_play"){
+                    vehicleState.music.status = "播放";
+                }
+                if(result.action === "nav_on"){
+                    vehicleState.navigation.status = "开启";
+                }
+                if(result.action === "ac_off"){
+                    vehicleState.ac.status = "关闭";
+                }
+                if(result.action === "music_pause"){
+                    vehicleState.music.status = "暂停";
+                }
+                if(result.action === "nav_off"){
+                    vehicleState.navigation.status = "关闭";
+                }
+                if(result.action === "ac_temp"){
+                    vehicleState.ac.temperature = result.ui_updates.ac_temp;
+                }
+                if(result.action === "media_volume"){
+                    vehicleState.media.volume = result.ui_updates.media_volume;
+                }
+                if(result.action === "music_volume"){
+                    vehicleState.music.volume = result.ui_updates.music_volume;
+                }
+                if(result.action === "nav_destination"){
+                    vehicleState.navigation.destination = result.ui_updates.nav_destination;
+                }
             }
+            console.log('此时的温度:',vehicleState.ac.temperature)
             
             // 执行UI更新
             if (result.ui_updates) {
@@ -793,12 +824,15 @@ function updateHabit(tp, val) {
     }
 
     function toggleAC() {
+        console.log("调试：toggleAC() 被调用，空调状态切换");
         vehicleState.ac.status = vehicleState.ac.status === "开启" ? "关闭" : "开启";
         updateACUI();
         sendCommandToBackend(vehicleState.ac.status === "开启" ? "打开空调" : "关闭空调");
     }
 
     function updateACUI() {
+        console.log("调试：updateACUI() 被调用，更新空调 UI");
+        console.log("调试：updateACUI() 被调用，当前温度：", vehicleState.ac.temperature);
         const indicator = document.getElementById('ac-indicator');
         const tempDisplay = document.getElementById('ac-temp');
         const modeDisplay = document.getElementById('ac-mode');
@@ -808,6 +842,7 @@ function updateHabit(tp, val) {
         tempDisplay.textContent = `温度: ${vehicleState.ac.temperature}°C`;
         modeDisplay.textContent = `模式: ${vehicleState.ac.mode}`;
         tempSlider.value = vehicleState.ac.temperature;
+        console.log(tempSlider.value);
         
         highlightCard('.card:nth-child(9)');
     }
@@ -975,30 +1010,6 @@ function updateHabit(tp, val) {
         } catch (error) {
             addLogEntry(`❌ 发送失败: ${error.message}`);
         }
-    }
-
-    function initSliders() {
-        const volumeSlider = document.getElementById('volume-slider');
-        const musicSlider = document.getElementById('music-slider');
-        const tempSlider = document.getElementById('temp-slider');
-        
-        volumeSlider.addEventListener('input', function() {
-            vehicleState.media.volume = parseInt(this.value);
-            document.getElementById('media-volume').textContent = `音量: ${this.value}%`;
-            sendCommandToBackend(`媒体音量调到${this.value}`);
-        });
-        
-        musicSlider.addEventListener('input', function() {
-            vehicleState.music.volume = parseInt(this.value);
-            document.getElementById('music-volume').textContent = `音量: ${this.value}%`;
-            sendCommandToBackend(`音乐音量调到${this.value}`);
-        });
-        
-        tempSlider.addEventListener('input', function() {
-            vehicleState.ac.temperature = parseInt(this.value);
-            document.getElementById('ac-temp').textContent = `温度: ${this.value}°C`;
-            sendCommandToBackend(`调到${this.value}度`);
-        });init
     }
 
     function updateTime() {
@@ -1509,7 +1520,6 @@ function fetchInitHabit() {
                 console.log('✅ 初始化完成：温度=', temperature, ' 音量=', music);
                 addLogEntry(`✅ 载入用户习惯：温度 ${temperature}°C, 音量 ${music}%`);
             } else {
-                // initSliders();
                 console.warn('❌ 获取用户习惯失败：', data.message);
                 addLogEntry('⚠️ 未找到用户习惯，使用默认设置');
             }
@@ -1527,8 +1537,30 @@ function fetchInitHabit() {
         initEventSource();
 
         // ✅ 加载用户音量与温度习惯
-        initSliders();
         fetchInitHabit();
+
+        // 滑动设置
+        const volumeSlider = document.getElementById('volume-slider');
+        const musicSlider = document.getElementById('music-slider');
+        const tempSlider = document.getElementById('temp-slider');
+        
+        volumeSlider.addEventListener('input', function() {
+            vehicleState.media.volume = parseInt(this.value);
+            document.getElementById('media-volume').textContent = `音量: ${this.value}%`;
+            updateHabit(2, this.value);
+        });
+        
+        musicSlider.addEventListener('input', function() {
+            vehicleState.music.volume = parseInt(this.value);
+            document.getElementById('music-volume').textContent = `音量: ${this.value}%`;
+            updateHabit(1, this.value);
+        });
+        
+        tempSlider.addEventListener('input', function() {
+            vehicleState.ac.temperature = parseInt(this.value);
+            document.getElementById('ac-temp').textContent = `温度: ${this.value}°C`;
+            updateHabit(0, this.value);
+        });
         
         // 初始化录音功能（延迟初始化，避免阻塞页面加载）
         setTimeout(() => {
